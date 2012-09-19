@@ -1,0 +1,5 @@
+*.o
+*.jar
+*.DS_Store
+*.bin
+*.img
