@@ -1,5 +1,10 @@
 *.o
-*.jar
 *.DS_Store
 *.bin
 *.img
+bochsout.txt
+bochsrc
+.bochsrc
+parport.out
+ne2k-tx.log
+ne2k-txdump.txt

@@ -229,6 +229,7 @@ void init_timer();
 /*=====>>> inout.c <<<======================================================*/
 
 unsigned char inportb (unsigned short port);
+unsigned short inportw (unsigned short port);
 void outportb (unsigned short port, unsigned char value);
 
 
@@ -264,6 +265,20 @@ typedef struct _Keyb_Message {
 } Keyb_Message;
 
 void init_keyb();
+
+/*=====>>> nek2_driver.c <<<====================================================*/
+
+#define NE2K_IRQ	0xA
+#define NE2K_PORT	0x300
+
+extern PORT ne2k_driver_port;
+
+typedef struct _NE2K_Driver_Message {
+    
+} NE2K_Driver_Message;
+
+void init_ne2k_driver();
+void init_ne2k_test();
 
 /*=====>>> shell.c <<<===================================================*/
 
