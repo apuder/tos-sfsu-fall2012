@@ -36,6 +36,12 @@ void run_pacman_app(WINDOW* wnd)
 }
 
 
+void run_ne2k_test(WINDOW* wnd)
+{
+    init_ne2k_test();
+}
+
+
 
 void read_line(char* buffer, int max_len)
 {
@@ -93,6 +99,11 @@ void process_command(char* command)
 	return;
     }
 
+    if (is_command(command, "ne2k")) {
+        run_ne2k_test(&pacman_wnd);
+        return;
+    }
+
     if (is_command(command, "train")) {
 	run_train_app(&train_wnd);
 	return;
@@ -122,7 +133,8 @@ void process_command(char* command)
 	wprintf(&shell_wnd, "  - go     make the train go\n");
 	wprintf(&shell_wnd, "  - stop   make the train stop\n");
 	wprintf(&shell_wnd, "  - rev    reverse train direction\n");
-	wprintf(&shell_wnd, "  - train  start train application\n\n");
+	wprintf(&shell_wnd, "  - train  start train application\n");
+    wprintf(&shell_wnd, "  - ne2k   NE2K tests\n\n");
 	return;
     }
     
