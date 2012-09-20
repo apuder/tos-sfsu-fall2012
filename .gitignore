@@ -2,6 +2,7 @@
 *.DS_Store
 *.bin
 *.img
+*.jar
 bochsout.txt
 bochsrc
 .bochsrc
