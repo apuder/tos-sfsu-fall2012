@@ -208,6 +208,28 @@ struct ne {
     // struct mutex txlock;               // Transmit lock
 };
 
+struct dev {
+/*
+    char name[DEVNAMELEN];
+    struct driver *driver;
+    struct unit *unit;
+    void *privdata;
+    int refcnt;
+    uid_t uid;
+    gid_t gid;
+    int mode;
+    struct devfile *files;
+    
+    int reads;
+    int writes;
+    int input;
+    int output;
+    
+    struct netif *netif;
+    int (*receive)(struct netif *netif, struct pbuf *p);
+ */
+};
+
 struct netstats *netstats;
 
 /*
@@ -541,9 +563,8 @@ int ne_attach(struct dev *dev, struct eth_addr *hwaddr) {
     *hwaddr = ne->hwaddr;
     return 0;
 }
-*/
 
-/*
+
 int ne_detach(struct dev *dev) {
     return 0;
 }
@@ -578,7 +599,8 @@ int ne_setup(struct ne *ne) {
     ne->rx_ring_end = ne->rx_page_stop * NE_PAGE_SIZE;
     
     // Probe for NE2000 card
-    if (!ne_probe(ne)) return 0;
+    if (!ne_probe(ne))
+        return 0;
     
     // Initialize network interface
     // init_event(&ne->ptx, 0, 0);
@@ -665,33 +687,44 @@ int ne_setup(struct ne *ne) {
 }
 
 void ne2k_driver_notifier (PROCESS self, PARAM param)
-{}
+{
+    // NE2K_Message msg;
+    while (1) {
+        wait_for_interrupt (NE2K_IRQ);
+        kprintf("got an IRQ!");
+    }
+}
+
+
 
 void ne2k_driver_process (PROCESS self, PARAM param)
 {
     NE2K_Driver_Message* msg;
     PROCESS       sender_proc;
-/*
-    PORT          keyb_notifier_port;
-    PROCESS       keyb_notifier_proc;
+    
+    PORT          ne2k_driver_notifier_port;
+    PROCESS       ne2k_driver_notifier_proc;
+    
+    /*
     char          key_buffer;
     int           key_waiting;
     PROCESS       client_proc;
     Keyb_Message* client_msg;
-    
-    keyb_notifier_port =
-	create_process (keyb_notifier, 7, 0, "Keyboard Notifier");
-    keyb_notifier_proc = keyb_notifier_port->owner;
+    */
+     
+    ne2k_driver_notifier_port = create_process (ne2k_driver_notifier, 7, 0, "NE2K Driver Notifier");
+    ne2k_driver_notifier_proc = ne2k_driver_notifier_port->owner;
 
+    /*
     client_proc = NULL;
     client_msg = NULL;
     key_buffer = '\0';
     key_waiting = FALSE;
     */
-    while(1) {
-	msg = (NE2K_Driver_Message*) receive (&sender_proc);
-	if (msg == NULL);
-	reply(sender_proc);
+    while (1) {
+        msg = (NE2K_Driver_Message*) receive (&sender_proc);
+        if (msg == NULL);
+        reply(sender_proc);
     }
 }
 
@@ -701,7 +734,7 @@ void ne2k_driver_process (PROCESS self, PARAM param)
 
 void init_ne2k_driver()
 {
-    ne2k_driver_port = create_process (ne2k_driver_process, 1, 0, "NE2K Driver");
+    ne2k_driver_port = create_process (ne2k_driver_process, 6, 0, "NE2K Driver");
     resign();
 }
 
