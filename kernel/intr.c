@@ -337,6 +337,66 @@ void isr_keyb()
     asm ("iret");
 }
 
+/*
+ * NE2000 ISR
+ */
+void isr_ne2k_driver_0()
+{
+    p = interrupt_table[NE2K_IRQ];
+
+    if (p == NULL) {
+        panic ("service_intr_0xA: Spurious interrupt");
+    }
+    
+    if (p->state != STATE_INTR_BLOCKED) {
+        panic ("service_intr_0xA: No process waiting");
+    }
+    
+    /* Add event handler to ready queue */
+    add_ready_queue (p);
+    
+    active_proc = dispatcher();
+}
+
+void isr_ne2k_driver()
+{
+    /*
+     *	PUSHL	%EAX		; Save process' context
+     *  PUSHL   %ECX
+     *  PUSHL   %EDX
+     *  PUSHL   %EBX
+     *  PUSHL   %EBP
+     *  PUSHL   %ESI
+     *  PUSHL   %EDI
+     */
+    asm ("pushl %eax;pushl %ecx;pushl %edx");
+    asm ("pushl %ebx;pushl %ebp;pushl %esi;pushl %edi");
+    
+    /* Save the context pointer ESP to the PCB */
+    asm ("movl %%esp,%0" : "=m" (active_proc->esp) : );
+    
+    isr_ne2k_driver_0();
+    
+    asm ("movl %0,%%esp" : : "m" (active_proc->esp) );
+    
+    /*
+     *	MOVB  $0x20,%AL	; Reset interrupt controller
+     *	OUTB  %AL,$0x20
+     *	POPL  %EDI      ; Restore previously saved context
+     *  POPL  %ESI
+     *  POPL  %EBP
+     *  POPL  %EBX
+     *  POPL  %EDX
+     *  POPL  %ECX
+     *  POPL  %EAX
+     *	IRET		; Return to new process
+     */
+    asm ("movb $0x20,%al;outb %al,$0x20");
+    asm ("popl %edi;popl %esi;popl %ebp;popl %ebx");
+    asm ("popl %edx;popl %ecx;popl %eax");
+    asm ("iret");
+}
+
 void wait_for_interrupt (int intr_no)
 {
     volatile int flag;
@@ -406,7 +466,8 @@ void init_interrupts()
     init_idt_entry (7, exception7);
     init_idt_entry (8, exception8);
     init_idt_entry (9, exception9);
-    init_idt_entry (10, exception10);
+    // init_idt_entry (10, exception10);
+    init_idt_entry (NE2K_IRQ, isr_ne2k_driver);
     init_idt_entry (11, exception11);
     init_idt_entry (12, exception12);
     init_idt_entry (13, exception13);
