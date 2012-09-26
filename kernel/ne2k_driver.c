@@ -9,6 +9,7 @@ PORT ne2k_driver_port;
 
 #define ETHER_HLEN 14
 #define ETHER_ADDR_LEN 6
+#define DPC_QUEUED_BIT 0
 
 // Page 0 register offsets
 #define NE_P0_CR        0x00           // Command Register
@@ -159,6 +160,24 @@ PORT ne2k_driver_port;
 #define NE_TIMEOUT              10000
 #define NE_TXTIMEOUT            30000
 
+//io port addresses
+#define PIC_MSTR_CTRL           0x20
+#define PIC_MSTR_MASK           0x21
+#define PIC_SLV_CTRL            0xA0
+#define PIC_SLV_MASK            0xA1
+
+// End of interrupt commands
+#define PIC_EOI_BASE            0x60
+#define PIC_EOI_CAS             0x62
+#define PIC_EOI_FD              0x66
+
+#define IRQBASE       0x20
+#define IRQ2INTR(irq) (IRQBASE + (irq))
+#define INTRS 64
+
+unsigned int irq_mask = 0xFFFB; 
+
+typedef void (*dpcproc_t)(void *arg);
 // Receive ring descriptor
 struct recv_ring_desc {
     unsigned char rsr;                   // Receiver status
@@ -166,10 +185,24 @@ struct recv_ring_desc {
     unsigned short count;                // Bytes in packet (length + 4)
 };
 
+typedef int (*intrproc_t)(struct context *ctxt, void *arg);
+
 typedef struct interrupt {
+    struct interrupt *next;
+    int flags;
+    intrproc_t handler;
+    void *arg;
 };
+
+struct interrupt *intrhndlr[INTRS];
+
 typedef struct dpc {
+    dpcproc_t proc;
+    void *arg;
+    struct dpc *next;
+    int flags;
 };
+
 typedef struct event {
 };
 
@@ -185,7 +218,8 @@ struct eth_hdr {
 };
 
 typedef unsigned int dev_t;
-
+struct dpc *dpc_queue_tail;
+struct dpc *dpc_queue_head;
 // NE2000 NIC status
 struct ne {
     dev_t devno;                          // Device number
@@ -246,7 +280,7 @@ struct netstats *netstats;
  */
 
 
-static void ne_readmem(struct ne *ne, unsigned short src, unsigned char *dst, unsigned short len) {
+static void ne_readmem(struct ne *ne, unsigned short src, char *dst, unsigned short len) {
     // original signature:
     // static void ne_readmem(struct ne *ne, unsigned short src, void *dst, unsigned short len) {
 
@@ -266,14 +300,14 @@ static void ne_readmem(struct ne *ne, unsigned short src, unsigned char *dst, un
     
     // Select remote DMA read
     outportb(ne->nic_addr + NE_P0_CR, NE_CR_RD0 | NE_CR_STA);
-
+    
     // Read NIC memory
     while (len > 0) {
         unsigned short d;
         d = inportw(ne->asic_addr + NE_NOVELL_DATA);
         *dst++ = d;
         *dst++ = d >> 8;
-        sleep(1);
+//        sleep(1);
         len -= 2;
     }
     
@@ -290,7 +324,7 @@ static int ne_probe(struct ne *ne) {
     outportb(ne->nic_addr + NE_P0_CR, NE_CR_RD2 | NE_CR_STP);
     
     // msleep(100);
-    sleep(100);
+//    sleep(100);
     
     // Test for a generic DP8390 NIC
     byte = inportb(ne->nic_addr + NE_P0_CR);
@@ -382,29 +416,36 @@ void ne_receive(struct ne *ne)
     }
 }
 */
+void eoi(unsigned int irq) {
+    if (irq < 8) {
+        outportb(PIC_MSTR_CTRL, irq + PIC_EOI_BASE);
+    } else {
+        outportb(PIC_SLV_CTRL, (irq - 8) + PIC_EOI_BASE);
+        outportb(PIC_MSTR_CTRL, PIC_EOI_CAS);
+    }
+}
 
-/*
 void ne_dpc(void *arg) {
     struct ne *ne = arg;
     unsigned char isr;
     
-    //kprintf("ne2000: dpc\n");
+    kprintf("ne2000: dpc\n");
     
     // Select page 0
-    outp(ne->nic_addr + NE_P0_CR, NE_CR_RD2 | NE_CR_STA);
-    
+    outportb(ne->nic_addr + NE_P0_CR, NE_CR_RD2 | NE_CR_STA);
+   
     // Loop until there are no pending interrupts
-    while ((isr = inp(ne->nic_addr + NE_P0_ISR)) != 0) {
+    while ((isr = inportb(ne->nic_addr + NE_P0_ISR)) != 0) {
         // Reset bits for interrupts being acknowledged
-        outp(ne->nic_addr + NE_P0_ISR, isr);
+        outportb(ne->nic_addr + NE_P0_ISR, isr);
         
         // Packet received
         if (isr & NE_ISR_PRX) {
-            //kprintf("ne2000: new packet arrived\n");
-            ne_receive(ne);
+            kprintf("ne2000: new packet arrived\n");
+//            ne_receive(ne);
         }
         
-        // Packet transmitted
+       /* // Packet transmitted
         if (isr & NE_ISR_PTX) {
             //kprintf("ne2000: packet transmitted\n");
             set_event(&ne->ptx);
@@ -415,16 +456,40 @@ void ne_dpc(void *arg) {
             //kprintf("ne2000: remote DMA complete\n");
             set_event(&ne->rdc);
         }
-        
+        */
         // Select page 0
-        outp(ne->nic_addr + NE_P0_CR, NE_CR_RD2 | NE_CR_STA);
+        outportb(ne->nic_addr + NE_P0_CR, NE_CR_RD2 | NE_CR_STA);
     }
     
     eoi(ne->irq);
 }
- */
 
 /*
+__inline void set_bit(void *bitmap, int pos) {
+    __asm { 
+        mov eax, pos
+        mov ebx, bitmap
+        bts dword ptr [ebx], eax
+    }
+}
+ */
+void queue_irq_dpc(struct dpc *dpc, dpcproc_t proc, void *arg) {
+   /* if (dpc->flags & DPC_QUEUED) {
+        dpc_lost++;
+        return;
+    }
+    */
+    dpc->proc = proc;
+    dpc->arg = arg;
+    dpc->next = NULL;
+    if (dpc_queue_tail) dpc_queue_tail->next = dpc;
+    dpc_queue_tail = dpc;
+    if (!dpc_queue_head) dpc_queue_head = dpc;
+    //assembly need to add
+//    set_bit(&dpc->flags, DPC_QUEUED_BIT);
+}
+
+
 int ne_handler(struct context *ctxt, void *arg) {
     struct ne *ne = (struct ne *) arg;
     
@@ -433,7 +498,7 @@ int ne_handler(struct context *ctxt, void *arg) {
     
     return 0;
 }
- */
+
 
 /*
 int ne_transmit(struct dev *dev, struct pbuf *p) {
@@ -569,7 +634,31 @@ int ne_detach(struct dev *dev) {
     return 0;
 }
 */
+void init_dpc(struct dpc *dpc) {
+    dpc->proc = NULL;
+    dpc->arg = NULL;
+    dpc->next = NULL;
+    dpc->flags = 0;
+}
 
+void register_interrupt(struct interrupt *intr, int intrno, intrproc_t f, void *arg) {
+    intr->handler = f;
+    intr->arg = arg;
+    intr->flags = 0;
+    intr->next = intrhndlr[intrno];
+    intrhndlr[intrno] = intr;
+}
+
+static void set_intr_mask(unsigned long mask) {
+    outportb(PIC_MSTR_MASK, (unsigned char) mask);
+    outportb(PIC_SLV_MASK, (unsigned char) (mask >> 8));
+}
+
+void enable_irq(unsigned int irq) {
+    irq_mask &= ~(1 << irq);
+    if (irq >= 8) irq_mask &= ~(1 << 2);
+    set_intr_mask(irq_mask);
+}
 
 int ne_setup(struct ne *ne) {
     // original signature:
@@ -608,22 +697,22 @@ int ne_setup(struct ne *ne) {
     // init_mutex(&ne->txlock, 0);
     
     // Install interrupt handler
-    // init_dpc(&ne->dpc);
-    // register_interrupt(&ne->intr, IRQ2INTR(ne->irq), ne_handler, ne);
-    // enable_irq(ne->irq);
-    
+    init_dpc(&ne->dpc);
+    register_interrupt(&ne->intr, IRQ2INTR(ne->irq), ne_handler, ne);
+    enable_irq(ne->irq);
     // Set page 0 registers, abort remote DMA, stop NIC
     outportb(ne->nic_addr + NE_P0_CR, NE_CR_RD2 | NE_CR_STP);
     
     // Set FIFO threshold to 8, no auto-init remote DMA, byte order=80x86, word-wide DMA transfers
     outportb(ne->nic_addr + NE_P0_DCR, NE_DCR_FT1 | NE_DCR_WTS | NE_DCR_LS);
-
+   
     // Get Ethernet MAC address
     ne_readmem(ne, 0, romdata, 16);
+    
     for (i = 0; i < ETHER_ADDR_LEN; i++) {
         ne->hwaddr.addr[i] = romdata[i * 2];
     }
-
+    
     // Set page 0 registers, abort remote DMA, stop NIC
     outportb(ne->nic_addr + NE_P0_CR, NE_CR_RD2 | NE_CR_STP);
 
@@ -638,11 +727,11 @@ int ne_setup(struct ne *ne) {
     
     // Enable the following interrupts: receive/transmit complete, receive/transmit error,
     // receiver overwrite and remote dma complete.
-    outportb(ne->nic_addr + NE_P0_IMR, NE_IMR_PRXE | NE_IMR_PTXE | NE_IMR_RXEE | NE_IMR_TXEE | NE_IMR_OVWE | NE_IMR_RDCE);
+//    outportb(ne->nic_addr + NE_P0_IMR, NE_IMR_PRXE | NE_IMR_PTXE | NE_IMR_RXEE | NE_IMR_TXEE | NE_IMR_OVWE | NE_IMR_RDCE);
     
     // Set page 1 registers
     outportb(ne->nic_addr + NE_P0_CR, NE_CR_PAGE_1 | NE_CR_RD2 | NE_CR_STP);
-    
+   
     // Copy out our station address
     for (i = 0; i < ETHER_ADDR_LEN; i++) {
         outportb(ne->nic_addr + NE_P1_PAR0 + i, ne->hwaddr.addr[i]);
@@ -689,10 +778,13 @@ int ne_setup(struct ne *ne) {
 void ne2k_driver_notifier (PROCESS self, PARAM param)
 {
     // NE2K_Message msg;
+    kprintf("loop\n");
     while (1) {
+        kprintf("waiting for IRQ");
         wait_for_interrupt (NE2K_IRQ);
         kprintf("got an IRQ!");
     }
+    
 }
 
 
@@ -736,6 +828,7 @@ void init_ne2k_driver()
 {
     ne2k_driver_port = create_process (ne2k_driver_process, 6, 0, "NE2K Driver");
     resign();
+    kprintf("3");
 }
 
 void init_ne2k_test()
