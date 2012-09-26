@@ -220,6 +220,7 @@ struct eth_hdr {
 typedef unsigned int dev_t;
 struct dpc *dpc_queue_tail;
 struct dpc *dpc_queue_head;
+
 // NE2000 NIC status
 struct ne {
     dev_t devno;                          // Device number
@@ -307,12 +308,9 @@ static void ne_readmem(struct ne *ne, unsigned short src, char *dst, unsigned sh
         d = inportw(ne->asic_addr + NE_NOVELL_DATA);
         *dst++ = d;
         *dst++ = d >> 8;
-//        sleep(1);
+        // sleep(1);
         len -= 2;
-    }
-    
-    // I don't know what this thing does but it might be useful so don't remove it
-    // outportb (ne->nic_addr + ISR, MSK_RDC);
+    }    
 }
 
 static int ne_probe(struct ne *ne) {
@@ -324,7 +322,7 @@ static int ne_probe(struct ne *ne) {
     outportb(ne->nic_addr + NE_P0_CR, NE_CR_RD2 | NE_CR_STP);
     
     // msleep(100);
-//    sleep(100);
+    // sleep(100);
     
     // Test for a generic DP8390 NIC
     byte = inportb(ne->nic_addr + NE_P0_CR);
@@ -354,8 +352,7 @@ void ne_get_packet(struct ne *ne, unsigned short src, char *dst, unsigned short 
 }
 
 /*
-void ne_receive(struct ne *ne)
-{
+void ne_receive(struct ne *ne) {
     struct recv_ring_desc packet_hdr;
     unsigned short packet_ptr;
     unsigned short len;
@@ -416,6 +413,7 @@ void ne_receive(struct ne *ne)
     }
 }
 */
+
 void eoi(unsigned int irq) {
     if (irq < 8) {
         outportb(PIC_MSTR_CTRL, irq + PIC_EOI_BASE);
@@ -464,15 +462,6 @@ void ne_dpc(void *arg) {
     eoi(ne->irq);
 }
 
-/*
-__inline void set_bit(void *bitmap, int pos) {
-    __asm { 
-        mov eax, pos
-        mov ebx, bitmap
-        bts dword ptr [ebx], eax
-    }
-}
- */
 void queue_irq_dpc(struct dpc *dpc, dpcproc_t proc, void *arg) {
    /* if (dpc->flags & DPC_QUEUED) {
         dpc_lost++;
@@ -656,7 +645,9 @@ static void set_intr_mask(unsigned long mask) {
 
 void enable_irq(unsigned int irq) {
     irq_mask &= ~(1 << irq);
-    if (irq >= 8) irq_mask &= ~(1 << 2);
+    if (irq >= 8) {
+        irq_mask &= ~(1 << 2);
+    }
     set_intr_mask(irq_mask);
 }
 
@@ -675,8 +666,8 @@ int ne_setup(struct ne *ne) {
     // memset(ne, 0, sizeof(struct ne));
     
     // Setup NIC configuration
-    ne->iobase = 0x300;
-    ne->irq = 10;
+    ne->iobase = NE2K_IOBASE;
+    ne->irq = NE2K_IRQ;
     ne->membase = 0;
     ne->memsize = 256;
     ne->nic_addr = ne->iobase + NE_NOVELL_NIC_OFFSET;
@@ -688,8 +679,9 @@ int ne_setup(struct ne *ne) {
     ne->rx_ring_end = ne->rx_page_stop * NE_PAGE_SIZE;
     
     // Probe for NE2000 card
-    if (!ne_probe(ne))
+    if (!ne_probe(ne)) {
         return 0;
+    }
     
     // Initialize network interface
     // init_event(&ne->ptx, 0, 0);
@@ -697,9 +689,10 @@ int ne_setup(struct ne *ne) {
     // init_mutex(&ne->txlock, 0);
     
     // Install interrupt handler
-    init_dpc(&ne->dpc);
-    register_interrupt(&ne->intr, IRQ2INTR(ne->irq), ne_handler, ne);
-    enable_irq(ne->irq);
+    // init_dpc(&ne->dpc);
+    // register_interrupt(&ne->intr, IRQ2INTR(ne->irq), ne_handler, ne);
+    // enable_irq(ne->irq);
+
     // Set page 0 registers, abort remote DMA, stop NIC
     outportb(ne->nic_addr + NE_P0_CR, NE_CR_RD2 | NE_CR_STP);
     
@@ -727,7 +720,7 @@ int ne_setup(struct ne *ne) {
     
     // Enable the following interrupts: receive/transmit complete, receive/transmit error,
     // receiver overwrite and remote dma complete.
-//    outportb(ne->nic_addr + NE_P0_IMR, NE_IMR_PRXE | NE_IMR_PTXE | NE_IMR_RXEE | NE_IMR_TXEE | NE_IMR_OVWE | NE_IMR_RDCE);
+    outportb(ne->nic_addr + NE_P0_IMR, NE_IMR_PRXE | NE_IMR_PTXE | NE_IMR_RXEE | NE_IMR_TXEE | NE_IMR_OVWE | NE_IMR_RDCE);
     
     // Set page 1 registers
     outportb(ne->nic_addr + NE_P0_CR, NE_CR_PAGE_1 | NE_CR_RD2 | NE_CR_STP);
@@ -775,28 +768,23 @@ int ne_setup(struct ne *ne) {
     return 0;
 }
 
-void ne2k_driver_notifier (PROCESS self, PARAM param)
-{
+void ne2k_driver_notifier (PROCESS self, PARAM param) {
     // NE2K_Message msg;
-    kprintf("loop\n");
     while (1) {
-        kprintf("waiting for IRQ");
+        kprintf("Waiting for IRQ...\n");
         wait_for_interrupt (NE2K_IRQ);
-        kprintf("got an IRQ!");
+        kprintf("Got an IRQ!\n");
     }
     
 }
 
-
-
-void ne2k_driver_process (PROCESS self, PARAM param)
-{
+void ne2k_driver_process (PROCESS self, PARAM param) {
     NE2K_Driver_Message* msg;
     PROCESS       sender_proc;
     
     PORT          ne2k_driver_notifier_port;
     PROCESS       ne2k_driver_notifier_proc;
-    
+
     /*
     char          key_buffer;
     int           key_waiting;
@@ -821,18 +809,14 @@ void ne2k_driver_process (PROCESS self, PARAM param)
 }
 
 /*-------------------------------------------------------------------*\
-  init_ne2k_driver() - creates the keyb_process
+  init_ne2k_driver() - creates the ne2k_driver_process
 \*-------------------------------------------------------------------*/
-
-void init_ne2k_driver()
-{
-    ne2k_driver_port = create_process (ne2k_driver_process, 6, 0, "NE2K Driver");
+void init_ne2k_driver() {
+    ne2k_driver_port = create_process (ne2k_driver_process, 6, 0, "NE2K Driver process");
     resign();
-    kprintf("3");
 }
 
-void init_ne2k_test()
-{
+void init_ne2k_test() {
     int probe_result = 0;
     struct ne *ne2k;
     
@@ -841,13 +825,15 @@ void init_ne2k_test()
     ne2k->nic_addr = ne2k->iobase + NE_NOVELL_NIC_OFFSET;
     probe_result = ne_probe(ne2k);
     
+    kprintf("Initializing NE2000...\n");
     ne_setup(ne2k);
     
     kprintf("Probe result was: %d.", probe_result);
     
-    if (probe_result == 1)
-        kprintf(" Successful!");
-    else
+    if (probe_result == 1) {
+        kprintf(" Successful!\n");
+    } else {
         kprintf("Error :(");
+    }
 }
 

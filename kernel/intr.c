@@ -466,8 +466,7 @@ void init_interrupts()
     init_idt_entry (7, exception7);
     init_idt_entry (8, exception8);
     init_idt_entry (9, exception9);
-    // init_idt_entry (10, exception10);
-    init_idt_entry (NE2K_IRQ, isr_ne2k_driver);
+    init_idt_entry (10, exception10);
     init_idt_entry (11, exception11);
     init_idt_entry (12, exception12);
     init_idt_entry (13, exception13);
@@ -477,6 +476,7 @@ void init_interrupts()
     init_idt_entry (TIMER_IRQ, isr_timer);
     init_idt_entry (COM1_IRQ, isr_com1);
     init_idt_entry (KEYB_IRQ, isr_keyb);
+    init_idt_entry (NE2K_IRQ, isr_ne2k_driver);
     
     re_program_interrupt_controller();
     

@@ -14,7 +14,5 @@ void kernel_main()
     init_keyb();
     init_shell();
     init_ne2k_driver();
-    kprintf("1");
     while (1);
-    kprintf("2");
 }
