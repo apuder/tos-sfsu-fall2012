@@ -23,3 +23,9 @@ unsigned short inportw (unsigned short port)
     asm ("inw %w1,%w0" : "=a" (_v) : "Nd" (port));
     return _v;
 }
+
+
+void outportw (unsigned short port, unsigned short value)
+{
+    asm ("outw %w0,%w1" : : "a" (value), "Nd" (port));
+}
