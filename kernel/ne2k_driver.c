@@ -292,7 +292,6 @@ struct netstats *netstats;
  };
  */
 
-
 static void ne_readmem(struct ne *ne, unsigned short src, char *dst, unsigned short len) {
     // original signature:
     // static void ne_readmem(struct ne *ne, unsigned short src, void *dst, unsigned short len) {
@@ -363,7 +362,6 @@ void ne_get_packet(struct ne *ne, unsigned short src, char *dst, unsigned short 
     ne_readmem(ne, src, dst, len);
 }
 
-/*
 void ne_receive(struct ne *ne) {
     struct recv_ring_desc packet_hdr;
     unsigned short packet_ptr;
@@ -373,9 +371,11 @@ void ne_receive(struct ne *ne) {
     int rc;
     
     // Set page 1 registers
-    outp(ne->nic_addr + NE_P0_CR, NE_CR_PAGE_1 | NE_CR_RD2 | NE_CR_STA);
+    outportb(ne->nic_addr + NE_P0_CR, NE_CR_PAGE_1 | NE_CR_RD2 | NE_CR_STA);
     
-    while (ne->next_pkt != inp(ne->nic_addr + NE_P1_CURR)) {
+    // kprintf("Receiving packet... %d ... %d", inportb(ne->nic_addr + NE_P1_CURR), ne->next_pkt);
+    
+    while (ne->next_pkt != inportb(ne->nic_addr + NE_P1_CURR)) {
         // Get pointer to buffer header structure
         packet_ptr = ne->next_pkt * NE_PAGE_SIZE;
         
@@ -384,7 +384,13 @@ void ne_receive(struct ne *ne) {
         
         // Allocate packet buffer
         len = packet_hdr.count - sizeof(struct recv_ring_desc);
-        p = pbuf_alloc(PBUF_RAW, len, PBUF_RW);
+        // p = pbuf_alloc(PBUF_RAW, len, PBUF_RW);
+        // remove this
+        p->tot_len = 64;
+        p->len = 64;
+        p->next = NULL;
+        p->payload = NULL;
+        // end remove this
         
         // Get packet from nic and send to upper layer
         if (p != NULL) {
@@ -394,49 +400,56 @@ void ne_receive(struct ne *ne) {
                 packet_ptr += q->len;
             }
             
-            //kprintf("ne2000: received packet, %d bytes\n", len);
-            rc = dev_receive(ne->devno, p);
+            kprintf("ne2000: received packet, %d bytes\n", len);
+            // rc = dev_receive(ne->devno, p);
+            rc = 0;
             if (rc < 0) {
                 kprintf("ne2000: error %d processing packet\n", rc);
-                pbuf_free(p);
+                // pbuf_free(p);
             }
         } else {
             // Drop packet
             kprintf("ne2000: packet dropped\n");
-            netstats->link.memerr++;
-            netstats->link.drop++;
+            // netstats->link.memerr++;
+            // netstats->link.drop++;
         }
         
         // Update next packet pointer
         ne->next_pkt = packet_hdr.next_pkt;
         
         // Set page 0 registers
-        outp(ne->nic_addr + NE_P0_CR, NE_CR_PAGE_0 | NE_CR_RD2 | NE_CR_STA);
+        outportb(ne->nic_addr + NE_P0_CR, NE_CR_PAGE_0 | NE_CR_RD2 | NE_CR_STA);
         
         // Update boundry pointer
         bndry = ne->next_pkt - 1;
         if (bndry < ne->rx_page_start) bndry = ne->rx_page_stop - 1;
-        outp(ne->nic_addr + NE_P0_BNRY, bndry);
+        outportb(ne->nic_addr + NE_P0_BNRY, bndry);
         
-        //kprintf("start: %02x stop: %02x next: %02x bndry: %02x\n", ne->rx_page_start, ne->rx_page_stop, ne->next_pkt, bndry);
+        kprintf("start: %02x stop: %02x next: %02x bndry: %02x\n", ne->rx_page_start, ne->rx_page_stop, ne->next_pkt, bndry);
         
         // Set page 1 registers
-        outp(ne->nic_addr + NE_P0_CR, NE_CR_PAGE_1 | NE_CR_RD2 | NE_CR_STA);
+        outportb(ne->nic_addr + NE_P0_CR, NE_CR_PAGE_1 | NE_CR_RD2 | NE_CR_STA);
     }
 }
-*/
 
 /*
  * End Of Interrupt
  * What's this for? Do we need this?
  */
 void eoi(unsigned int irq) {
+    // PIC_EOI_BASE 0x60
+    // PIC_EOI_CAS  0x62
+    /*
     if (irq < 8) {
         outportb(PIC_MSTR_CTRL, irq + PIC_EOI_BASE);
     } else {
+        // if IRQ is > 8, then it is set in the second (slave)
+        // controller, so we substract 8 to fix the offset
         outportb(PIC_SLV_CTRL, (irq - 8) + PIC_EOI_BASE);
         outportb(PIC_MSTR_CTRL, PIC_EOI_CAS);
     }
+     */
+    outportb(PIC_MSTR_CTRL, NE2K_IRQ);
 }
 
 /*
@@ -484,7 +497,7 @@ void ne_dpc(void *arg) {
     // kprintf("IRQ is %x; %d", ne->irq, ne->irq);
     
     // Signal end of interrupt to PIC
-    // eoi(ne->irq);
+    eoi(ne->irq);
 }
 
 
@@ -509,23 +522,21 @@ int ne_transmit() {
     int len;
     int wrap;
     unsigned char save_byte[2];
-    struct pbuf *q;
+    struct pbuf *q = NULL;
     int i;
     
     // remove this
     unsigned int __data__ = 0xDEADBEEF;
     struct pbuf *p;
     p->next = NULL;
-    p->tot_len = 64;
     p->payload = &__data__;
-    p->len = 4;
-    p->size = (sizeof (unsigned int));
+    p->len = 4; // Length of this buffer.
+    p->tot_len = 4; //64;  // Total length of buffer + additionally chained buffers.
+    p->size = (sizeof (unsigned int)); // Allocated size of buffer
     // for (q=p, i=0;i<4;i++, q=q->next) kprintf("DATA %x\n", *(unsigned int *) p->payload);
     // end remove this
     
-    
-    
-    //kprintf("ne_transmit: transmit packet len=%d\n", p->tot_len);
+    kprintf("ne_transmit: transmit packet len=%d\n", p->tot_len);
     
     // Get transmit lock
     /*
@@ -535,7 +546,7 @@ int ne_transmit() {
     }
      */
     
-    // We need to transfer a whole number of words
+    // We need to transfer a whole number of words (2-byte), so dma_len has to be pair
     dma_len = p->tot_len;
     if (dma_len & 1) dma_len++;
     
@@ -550,8 +561,8 @@ int ne_transmit() {
     outportb(ne->nic_addr + NE_P0_ISR, NE_ISR_RDC);
     
     // Set up DMA byte count
-    outportb(ne->nic_addr + NE_P0_RBCR0, (unsigned char) dma_len);
-    outportb(ne->nic_addr + NE_P0_RBCR1, (unsigned char) (dma_len >> 8));
+    outportb(ne->nic_addr + NE_P0_RBCR0, (unsigned char) dma_len); // send low byte counter
+    outportb(ne->nic_addr + NE_P0_RBCR1, (unsigned char) (dma_len >> 8)); // send high byte counter
     
     // Set up destination address in NIC memory
     dst = ne->rx_page_stop; // for now we only use one tx buffer
@@ -559,6 +570,9 @@ int ne_transmit() {
     outportb(ne->nic_addr + NE_P0_RSAR1, (dst * NE_PAGE_SIZE) >> 8);
     
     // Set remote DMA write
+    // NE_P0_CR  Command Register
+    // NE_CR_RD1 Remote DMA Command 1
+    // NE_CR_STA Command Register Start
     outportb(ne->nic_addr + NE_P0_CR, NE_CR_RD1 | NE_CR_STA);
     
     wrap = 0;
@@ -600,7 +614,7 @@ int ne_transmit() {
     }
     
     // Wait for remote DMA complete
-    sleep(10);
+    sleep(1);
     /*
     if (wait_for_object(&ne->rdc, NE_TIMEOUT) < 0) {
         kprintf(KERN_WARNING "ne2000: timeout waiting for remote dma to complete\n");
@@ -625,7 +639,7 @@ int ne_transmit() {
     outportb(ne->nic_addr + NE_P0_CR, NE_CR_RD2 | NE_CR_TXP | NE_CR_STA);
     
     // Wait for packet transmitted
-    sleep(10);
+    sleep(1);
     /*
     if (wait_for_object(&ne->ptx, NE_TIMEOUT) < 0) {
         kprintf(KERN_WARNING "ne2000: timeout waiting for packet transmit\n");
@@ -740,8 +754,7 @@ int ne_setup(struct ne *ne) {
     // Initialize receiver (ring-buffer) page stop and boundry
     outportb(ne->nic_addr + NE_P0_PSTART, ne->rx_page_start);
     outportb(ne->nic_addr + NE_P0_PSTOP, ne->rx_page_stop);
-    outportb(ne->nic_addr + NE_P0_BNRY, ne->rx_page_start);
-    
+    outportb(ne->nic_addr + NE_P0_BNRY, ne->rx_page_start);    
     
     // Enable the following interrupts: receive/transmit complete, receive/transmit error,
     // receiver overwrite and remote dma complete.
@@ -863,11 +876,12 @@ void init_ne2k_test() {
     if (probe_result == 1) {
         kprintf(" Successful!\n");
     } else {
-        kprintf("Error :(");
+        kprintf("Error :(\n");
     }
     
-    
-    kprintf("Trying to send a packet...\n");
-    ne_transmit();
-    
+    // kprintf("Trying to send a packet...\n");
+    // ne_transmit();
+
+    // kprintf("Trying to receive a packet...\n");
+    // ne_receive(__ne);
 }

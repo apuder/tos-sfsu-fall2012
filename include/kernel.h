@@ -268,7 +268,7 @@ void init_keyb();
 
 /*=====>>> nek2_driver.c <<<====================================================*/
 
-#define NE2K_IRQ	0x6A
+#define NE2K_IRQ	0x67
 #define NE2K_IOBASE 0x300
 #define NE2K_PORT	0x300
 
