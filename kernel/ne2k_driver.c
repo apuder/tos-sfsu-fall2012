@@ -782,6 +782,7 @@ int ne_setup(struct ne *ne) {
     // init_event(&ne->rdc, 0, 0);
     // init_mutex(&ne->txlock, 0);
     
+    // I guess we don't need this because we handle interrupts differently in intr.c
     // Install interrupt handler
     // init_dpc(&ne->dpc);
     // register_interrupt(&ne->intr, IRQ2INTR(ne->irq), ne_handler, ne);
@@ -846,6 +847,9 @@ int ne_setup(struct ne *ne) {
     
     // Start NIC
     outportb(ne->nic_addr + NE_P0_CR, NE_CR_RD2 | NE_CR_STA);
+    
+#define BOB_IMR 0x1b
+    outportb (ne->nic_addr + 0x1F, BOB_IMR); //IMR
     
     // Create packet device
     // ne->devno = dev_make("eth#", &ne_driver, unit, ne);

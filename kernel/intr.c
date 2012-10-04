@@ -391,7 +391,8 @@ void isr_ne2k_driver()
      *  POPL  %EAX
      *	IRET		; Return to new process
      */
-    asm ("movb $0x20,%al;outb %al,$0x20");
+    // asm ("movb $0x20,%al;outb %al,$0x20");
+    asm ("movb $0x20,%al;outb %al,$0xA0;outb %al,$0x20");
     asm ("popl %edi;popl %esi;popl %ebp;popl %ebx");
     asm ("popl %edx;popl %ecx;popl %eax");
     asm ("iret");
