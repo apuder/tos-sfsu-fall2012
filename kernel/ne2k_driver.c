@@ -223,8 +223,8 @@ struct eth_hdr {
     unsigned short type;
 };
 
-struct pbuf {
-    struct pbuf *next;
+typedef struct pbuf {
+    pbuf *next;
     unsigned short flags;
     unsigned short ref;
     void *payload;
@@ -274,7 +274,7 @@ struct dev {
     int input;
     int output;
     struct netif *netif;
-    int (*receive)(struct netif *netif, struct pbuf *p);
+    int (*receive)(struct netif *netif, pbuf *p);
 };
 
 struct netstats *netstats;
@@ -379,7 +379,7 @@ void ne_receive(struct ne *ne) {
     unsigned short packet_ptr;
     unsigned short len;
     unsigned char bndry;
-    struct pbuf *p, *q;
+    pbuf *p, *q;
     int rc;
     
     // Set page 1 registers
@@ -525,7 +525,7 @@ int ne_handler(struct context *ctxt, void *arg) {
     return 0;
 }
 
-int ne_transmit() {
+int ne_transmit(pbuf *p) {
 // int ne_transmit(struct dev *dev, struct pbuf *p) {
     // struct ne *ne = dev->privdata;
     struct ne *ne = __ne;
@@ -535,21 +535,9 @@ int ne_transmit() {
     int len;
     int wrap;
     unsigned char save_byte[2];
-    struct pbuf *q;
+    pbuf *q;
     int i;
-    
-    // remove this
-    dst = 0xDEAD;
-    unsigned int __data__ = 0xDEADBEEF;
-    struct pbuf *p;
-    p->next = 0;
-    p->payload = &__data__;
-    p->len = 4; // Length of this buffer.
-    p->tot_len = 4; //64;  // Total length of buffer + additionally chained buffers.
-    p->size = (sizeof (unsigned int)); // Allocated size of buffer
-    // for (q=p, i=0;i<4;i++,q=q->next) kprintf("DATA (%d) %x\n", i, *(unsigned int*) q->payload);
-    // end remove this
-    
+
     kprintf("ne_transmit: packet len=%d\n", p->tot_len);
     kprintf("ne_transmit: payload=%X\n", *((unsigned int *)p->payload));
     
@@ -592,17 +580,17 @@ int ne_transmit() {
     
     wrap = 0;
     
-    kprintf("ne_transmit: payload=%X\n", *((unsigned int *)q->payload));
+    // kprintf("ne_transmit: payload=%X\n", *((unsigned int *)q->payload));
+    // kprintf("p=%d, &p=%d, *p=%d, q=%d, &q=%d, *q=%d\n", p, &p, *p, q, &q, *q);
     q = p;
-    kprintf("ne_transmit: payload=%X\n", *((unsigned int *)q->payload));
+    // kprintf("ne_transmit: payload=%X\n", *((unsigned int *)q->payload));
     
-    //for (q = p; q != NULL; q = q->next) {
-    //for (q = p; q == 0; q = q->next) {
+    for (q = p; q != NULL; q = q->next) {
         len = q->len;
         if (len > 0) {
             data = q->payload;
             
-            kprintf("Data: %x\n", *(unsigned int *)data);
+            // kprintf("Data: %x\n", *(unsigned int *)data);
             
             // Finish the last word
             if (wrap) {
@@ -619,7 +607,8 @@ int ne_transmit() {
                 //outsw(ne->asic_addr + NE_NOVELL_DATA, data, len >> 1);
                 
                 // With this one:
-                while (len > 0) {
+                int len2 = len >> 1;
+                while (len2 > 0) {
                     /*
                     unsigned short d;
                     d = inportw(ne->asic_addr + NE_NOVELL_DATA);
@@ -635,8 +624,7 @@ int ne_transmit() {
                     outportw((unsigned short) (ne->asic_addr + NE_NOVELL_DATA), *(unsigned short *) data);
                     data++;
                     data++;
-                    sleep(1);
-                    len -= 2;
+                    len2 -= 2;
                 }
                 
                 /*
@@ -662,7 +650,7 @@ int ne_transmit() {
                 wrap = 1;
             }
         }
-    //}
+    }
     
     // Output last byte
     if (wrap) {
@@ -848,8 +836,8 @@ int ne_setup(struct ne *ne) {
     // Start NIC
     outportb(ne->nic_addr + NE_P0_CR, NE_CR_RD2 | NE_CR_STA);
     
-#define BOB_IMR 0x1b
-    outportb (ne->nic_addr + 0x1F, BOB_IMR); //IMR
+    // #define BOB_IMR 0x1b
+    // outportb (ne->nic_addr + 0x1F, BOB_IMR); //IMR
     
     // Create packet device
     // ne->devno = dev_make("eth#", &ne_driver, unit, ne);
@@ -935,8 +923,15 @@ void init_ne2k_test() {
     }
     
     sleep(10);
+    unsigned int __data__ = 0xDEADBEEF;
+    pbuf p;
+    p.next = NULL;
+    p.payload = &__data__;
+    p.len = 4; // Length of this buffer.
+    p.tot_len = 4; //64;  // Total length of buffer + additionally chained buffers.
+    p.size = (sizeof (unsigned int)); // Allocated size of buffer
     kprintf("ne_test: Trying to send a packet...\n");
-    ne_transmit();
+    ne_transmit(&p);
 
     sleep(10);
     // kprintf("Trying to receive a packet...\n");
