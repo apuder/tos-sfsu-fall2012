@@ -224,14 +224,14 @@ struct eth_hdr {
 };
 
 typedef struct pbuf {
-    pbuf *next;
+    struct pbuf *next;
     unsigned short flags;
     unsigned short ref;
     void *payload;
     int tot_len;                // Total length of buffer + additionally chained buffers.
     int len;                    // Length of this buffer.
     int size;                   // Allocated size of buffer
-};
+} pbuf;
 
 typedef unsigned int dev_t;
 struct dpc *dpc_queue_tail;
@@ -581,7 +581,7 @@ int ne_transmit(pbuf *p) {
     wrap = 0;
     
     // kprintf("ne_transmit: payload=%X\n", *((unsigned int *)q->payload));
-    // kprintf("p=%d, &p=%d, *p=%d, q=%d, &q=%d, *q=%d\n", p, &p, *p, q, &q, *q);
+    kprintf("p=%d, &p=%d, *p=%d, q=%d, &q=%d, *q=%d\n", p, &p, *p, q, &q, *q);
     q = p;
     // kprintf("ne_transmit: payload=%X\n", *((unsigned int *)q->payload));
     
@@ -590,7 +590,7 @@ int ne_transmit(pbuf *p) {
         if (len > 0) {
             data = q->payload;
             
-            // kprintf("Data: %x\n", *(unsigned int *)data);
+            kprintf("Data: %x\n", *(unsigned int *)data);
             
             // Finish the last word
             if (wrap) {
