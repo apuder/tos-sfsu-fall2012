@@ -124,6 +124,11 @@ void process_command(char* command)
 	return;
     }
     
+    if (is_command(command, "send")) {
+        ne_test_transmit();
+        return;
+    }
+    
     if (is_command(command, "help")) {
 	wprintf(&shell_wnd, "Commands:\n");
 	wprintf(&shell_wnd, "  - help   show this help\n");
@@ -134,7 +139,8 @@ void process_command(char* command)
 	wprintf(&shell_wnd, "  - stop   make the train stop\n");
 	wprintf(&shell_wnd, "  - rev    reverse train direction\n");
 	wprintf(&shell_wnd, "  - train  start train application\n");
-    wprintf(&shell_wnd, "  - ne2k   NE2K tests\n\n");
+    wprintf(&shell_wnd, "  - ne2k   NE2K tests\n");
+       wprintf(&shell_wnd, "  - send   sends test packet from NE2K\n\n");  
 	return;
     }
     

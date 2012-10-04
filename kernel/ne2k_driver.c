@@ -224,14 +224,14 @@ struct eth_hdr {
 };
 
 typedef struct pbuf {
-    pbuf *next;
+    struct pbuf *next;
     unsigned short flags;
     unsigned short ref;
     void *payload;
     int tot_len;                // Total length of buffer + additionally chained buffers.
     int len;                    // Length of this buffer.
     int size;                   // Allocated size of buffer
-};
+}pbuf;
 
 typedef unsigned int dev_t;
 struct dpc *dpc_queue_tail;
@@ -898,6 +898,17 @@ void ne_show_info(struct ne *ne) {
             ne->hwaddr.addr[5]);
 }
 
+void ne_test_transmit(){
+    unsigned int __data__ = 0xDEADBEEF;
+    pbuf p;
+    p.next = NULL;
+    p.payload = &__data__;
+    p.len = 4; // Length of this buffer.
+    p.tot_len = 4; //64;  // Total length of buffer + additionally chained buffers.
+    p.size = (sizeof (unsigned int)); // Allocated size of buffer
+    kprintf("ne_test: Trying to send a packet...\n");
+    ne_transmit(&p);
+}
 /*-------------------------------------------------------------------*\
   init_ne2k_driver() - creates the ne2k_driver_process
 \*-------------------------------------------------------------------*/
@@ -923,15 +934,7 @@ void init_ne2k_test() {
     }
     
     sleep(10);
-    unsigned int __data__ = 0xDEADBEEF;
-    pbuf p;
-    p.next = NULL;
-    p.payload = &__data__;
-    p.len = 4; // Length of this buffer.
-    p.tot_len = 4; //64;  // Total length of buffer + additionally chained buffers.
-    p.size = (sizeof (unsigned int)); // Allocated size of buffer
-    kprintf("ne_test: Trying to send a packet...\n");
-    ne_transmit(&p);
+//    ne_test_transmit();
 
     sleep(10);
     // kprintf("Trying to receive a packet...\n");
