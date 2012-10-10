@@ -182,6 +182,7 @@ typedef unsigned short gid_t;
 #define INTRS 64
 
 unsigned int irq_mask = 0xFFFB; 
+unsigned int initialized = 0;
 
 typedef void (*dpcproc_t)(void *arg);
 // Receive ring descriptor
@@ -581,7 +582,7 @@ int ne_transmit(pbuf *p) {
     wrap = 0;
     
     // kprintf("ne_transmit: payload=%X\n", *((unsigned int *)q->payload));
-    kprintf("p=%d, &p=%d, *p=%d, q=%d, &q=%d, *q=%d\n", p, &p, *p, q, &q, *q);
+//    kprintf("p=%d, &p=%d  , *p=%d, q=%d, &q=%d, *q=%d\n", p, &p, *p, q, &q, *q);
     q = p;
     // kprintf("ne_transmit: payload=%X\n", *((unsigned int *)q->payload));
     
@@ -837,13 +838,14 @@ int ne_setup(struct ne *ne) {
     outportb(ne->nic_addr + NE_P0_CR, NE_CR_RD2 | NE_CR_STA);
     
     // #define BOB_IMR 0x1b
-    // outportb (ne->nic_addr + 0x1F, BOB_IMR); //IMR
+     outportb (ne->nic_addr + 0x1F, 0x1b); //IMR
     
     // Create packet device
     // ne->devno = dev_make("eth#", &ne_driver, unit, ne);
     
     // kprintf(KERN_INFO "%s: NE2000 iobase 0x%x irq %d mac %s\n", device(ne->devno)->name, ne->iobase, ne->irq, ether2str(&ne->hwaddr, str));
-    return 0;
+    
+    return 1;
 }
 
 
@@ -899,15 +901,19 @@ void ne_show_info(struct ne *ne) {
 }
 
 void ne_test_transmit(){
-    unsigned int __data__ = 0xDEADBEEF;
-    pbuf p;
-    p.next = NULL;
-    p.payload = &__data__;
-    p.len = 4; // Length of this buffer.
-    p.tot_len = 4; //64;  // Total length of buffer + additionally chained buffers.
-    p.size = (sizeof (unsigned int)); // Allocated size of buffer
-    kprintf("ne_test: Trying to send a packet...\n");
-    ne_transmit(&p);
+    if(initialized){
+        unsigned int __data__ = 0xDEADBEEF;
+        pbuf p;
+        p.next = NULL;
+        p.payload = &__data__;
+        p.len = 4; // Length of this buffer.
+        p.tot_len = 4; //64;  // Total length of buffer + additionally chained buffers.
+        p.size = (sizeof (unsigned int)); // Allocated size of buffer
+        kprintf("ne_test: Trying to send a packet...\n");
+        ne_transmit(&p);
+    }else{
+        kprintf("test failed: ne2k has not been initialized\n");
+    }
 }
 /*-------------------------------------------------------------------*\
   init_ne2k_driver() - creates the ne2k_driver_process
@@ -922,7 +928,7 @@ void init_ne2k_test() {
     // struct ne *ne;
     
     kprintf("ne_test: Initializing NE2000...\n");
-    ne_setup(__ne);
+    initialized = ne_setup(__ne);
     ne_show_info(__ne);
 
     probe_result = ne_probe(__ne);
