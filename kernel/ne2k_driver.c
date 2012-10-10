@@ -7,6 +7,14 @@ struct ne *__ne;
 typedef unsigned short uid_t;
 typedef unsigned short gid_t;
 
+
+#define NtoHs(n) ( (((n) & 0xFF00) >> 8) | (((n) & 0x00FF) << 8) )
+#define HtoNs(n) ( (((n) & 0xFF00) >> 8) | (((n) & 0x00FF) << 8) )
+#define NtoHl(n) ( (((n) & 0xFF000000) >> 24) | (((n) & 0x00FF0000) >> 8) \
+| (((n) & 0x0000FF00) << 8) | (((n) & 0x000000FF) << 24) )
+#define HtoNl(n) ( (((n) & 0xFF000000) >> 24) | (((n) & 0x00FF0000) >> 8) \
+| (((n) & 0x0000FF00) << 8) | (((n) & 0x000000FF) << 24) )
+
 // #define KEYBD           0x60
 // #define PORT_B          0x61
 // #define KBIT            0x80
@@ -280,19 +288,6 @@ struct dev {
 
 struct netstats *netstats;
 
-/*
- struct driver ne_driver = {
- "ne2000",
- DEV_TYPE_PACKET,
- ne_ioctl,
- NULL,
- NULL,
- ne_attach,
- ne_detach,
- ne_transmit
- };
- */
-
 static void ne_readmem(struct ne *ne, unsigned short src, char *dst, unsigned short len) {
     // original signature:
     // static void ne_readmem(struct ne *ne, unsigned short src, void *dst, unsigned short len) {
@@ -539,7 +534,7 @@ int ne_transmit(pbuf *p) {
     pbuf *q;
     int i;
 
-    kprintf("ne_transmit: packet len=%d\n", p->tot_len);
+    kprintf("ne_transmit: len=%d tot_len=%d\n", p->len, p->tot_len);
     kprintf("ne_transmit: payload=%X\n", *((unsigned int *)p->payload));
     
     // Get transmit lock
@@ -570,8 +565,11 @@ int ne_transmit(pbuf *p) {
     
     // Set up destination address in NIC memory
     dst = ne->rx_page_stop; // for now we only use one tx buffer
-    outportb(ne->nic_addr + NE_P0_RSAR0, (dst * NE_PAGE_SIZE));
-    outportb(ne->nic_addr + NE_P0_RSAR1, (dst * NE_PAGE_SIZE) >> 8);
+    dst = 0x4000;
+    //outportb(ne->nic_addr + NE_P0_RSAR0, (dst * NE_PAGE_SIZE));
+    //outportb(ne->nic_addr + NE_P0_RSAR1, (dst * NE_PAGE_SIZE) >> 8);
+    outportb(ne->nic_addr + NE_P0_RSAR0, dst);
+    outportb(ne->nic_addr + NE_P0_RSAR1, dst >> 8);
     
     // Set remote DMA write
     // NE_P0_CR  Command Register
@@ -582,7 +580,8 @@ int ne_transmit(pbuf *p) {
     wrap = 0;
     
     // kprintf("ne_transmit: payload=%X\n", *((unsigned int *)q->payload));
-//    kprintf("p=%d, &p=%d  , *p=%d, q=%d, &q=%d, *q=%d\n", p, &p, *p, q, &q, *q);
+
+    // kprintf("p=%d, &p=%d, *p=%d, q=%d, &q=%d, *q=%d\n", p, &p, *p, q, &q, *q);
     q = p;
     // kprintf("ne_transmit: payload=%X\n", *((unsigned int *)q->payload));
     
@@ -591,11 +590,12 @@ int ne_transmit(pbuf *p) {
         if (len > 0) {
             data = q->payload;
             
-            kprintf("Data: %x\n", *(unsigned int *)data);
+            // kprintf("Data in this buffer: %x\n", *(unsigned int *)data);
             
             // Finish the last word
             if (wrap) {
                 save_byte[1] = *data;
+                kprintf("last byte data=%x\n", *(unsigned short *) save_byte);
                 outportw((unsigned short) (ne->asic_addr + NE_NOVELL_DATA), *(unsigned short *) save_byte);
                 data++;
                 len--;
@@ -605,10 +605,10 @@ int ne_transmit(pbuf *p) {
             // Output contiguous words
             if (len > 1) {
                 // I'm replacing this one:
-                //outsw(ne->asic_addr + NE_NOVELL_DATA, data, len >> 1);
+                // outsw(ne->asic_addr + NE_NOVELL_DATA, data, len >> 1);
                 
                 // With this one:
-                int len2 = len >> 1;
+                int len2 = len; //len >> 1;
                 while (len2 > 0) {
                     /*
                     unsigned short d;
@@ -617,32 +617,22 @@ int ne_transmit(pbuf *p) {
                     *dst++ = d >> 8;
                     // sleep(1);
                     len -= 2;
- 
-                    unsigned short d;
+                     unsigned short d;
                     *dst++ = d;
                     *dst++ = d >> 8;
                      */
-                    outportw((unsigned short) (ne->asic_addr + NE_NOVELL_DATA), *(unsigned short *) data);
+                    kprintf("data=%x, len=%d | ", *(unsigned short *) data, len2);
+                    outportw((unsigned short) (ne->asic_addr + NE_NOVELL_DATA), *(unsigned short *)data);
+                    // outportb((unsigned short)ne->asic_addr + NE_NOVELL_DATA, *(unsigned char *) data);
+                    sleep(1);
                     data++;
                     data++;
                     len2 -= 2;
                 }
                 
-                /*
-                 This is what the outsw function is supposed to do:
-                 void outsw(port_t port, void *buf, int count) {
-                 __asm {
-                 mov edx, port
-                 mov esi, buf
-                 mov ecx, count
-                 rep outsw
-                 }
-                 }
-                 */
-                
                 // this was in the original code
                 data += len & ~1;
-                len &= 1;
+                len &= 1; // will be 1 if the length is odd
             }
             
             // Save last byte if necessary
@@ -659,7 +649,11 @@ int ne_transmit(pbuf *p) {
     }
     
     // Wait for remote DMA complete
-    sleep(1);
+    sleep(10);
+    //unsigned char wait;
+    // while (((wait = inportb(ne->nic_addr + 0x7)) & 0x40) == 0);
+    // outportb(ne->nic_addr + 0x7, wait);
+
     /*
     if (wait_for_object(&ne->rdc, NE_TIMEOUT) < 0) {
         kprintf(KERN_WARNING "ne2000: timeout waiting for remote dma to complete\n");
@@ -669,7 +663,8 @@ int ne_transmit(pbuf *p) {
      */
     
     // Set TX buffer start page
-    outportb(ne->nic_addr + NE_P0_TPSR, (unsigned char) dst);
+    // outportb(ne->nic_addr + NE_P0_TPSR, (unsigned char) dst);
+    outportb(ne->nic_addr + NE_P0_TPSR, (unsigned char) 0x40);
     
     // Set TX length (packets smaller than 64 bytes must be padded)
     if (p->tot_len > 64) {
@@ -755,7 +750,7 @@ int ne_setup(struct ne *ne) {
     ne->memsize = NE_PAGE_SIZE;
     ne->nic_addr = ne->iobase + NE_NOVELL_NIC_OFFSET;
     ne->asic_addr = ne->iobase + NE_NOVELL_ASIC_OFFSET;
-    ne->rx_page_start = ne->membase / NE_PAGE_SIZE;
+    ne->rx_page_start = ne->membase / NE_PAGE_SIZE; // == 64
     ne->rx_page_stop = ne->rx_page_start + (ne->memsize / NE_PAGE_SIZE) - NE_TXBUF_SIZE * NE_TX_BUFERS;
     ne->next_pkt = ne->rx_page_start + 1;
     ne->rx_ring_start = ne->rx_page_start * NE_PAGE_SIZE;
@@ -923,6 +918,22 @@ void init_ne2k_driver() {
     resign();
 }
 
+#define ETHERNET_POLYNOMIAL 0x04c11db7U
+
+unsigned long ether_crc(int length, unsigned char *data) {
+    int crc = -1;
+    
+    while (--length >= 0) {
+        unsigned char current_octet = *data++;
+        int bit;
+        for (bit = 0; bit < 8; bit++, current_octet >>= 1) {
+            crc = (crc << 1) ^ ((crc < 0) ^ (current_octet & 1) ? ETHERNET_POLYNOMIAL : 0);
+        }
+    }
+    
+    return crc;
+}
+
 void init_ne2k_test() {
     int probe_result = 0;
     // struct ne *ne;
@@ -940,8 +951,48 @@ void init_ne2k_test() {
     }
     
     sleep(10);
-//    ne_test_transmit();
 
+    unsigned char data[64] = {
+        // preamble
+        // 0b10101010, 0b10101010, 0b10101010, 0b10101010,
+        // 0b10101010, 0b10101010,0b10101010, 0b10101010,
+        // destination
+        0x7A, 0xA4, 0x40, 0x64, 0xFC, 0x92,
+        // source
+        0xB0, 0xC4, 0x20, 0x00, 0x00, 0x05,
+        
+        
+        
+        // frame length
+        10, 10,
+
+        // ip packet
+        0x08, 0x00,
+
+        // data
+        // 0,
+        // padding
+        0xAA, 2, 3, 4, 5, 6, 7, 8, 9,10,
+        11,12,13,14,15,16,17,18,19,20,
+        21,22,23,24,25,26,27,28,29,30,
+        31,32,33,34,35,36,37,38,39,40,
+        41,42,43,44,45,46,
+        // crc
+        0,1,2,3
+    };
+    
+    kprintf("(%d)", *(unsigned int *)data[60]);
+    data[60] = ether_crc(60, data);
+    kprintf("(%d)\n", *(unsigned int *)data[60]);
+    
+    pbuf p;
+    p.next = NULL;
+    p.payload = &data;
+    p.len = 64; // Length of this buffer.
+    p.tot_len = 64;  // Total length of buffer + additionally chained buffers.
+    p.size = (sizeof (unsigned int)); // Allocated size of buffer
+    kprintf("ne_test: Trying to send a packet...\n");
+    ne_transmit(&p);
     sleep(10);
     // kprintf("Trying to receive a packet...\n");
     // ne_receive(__ne);
