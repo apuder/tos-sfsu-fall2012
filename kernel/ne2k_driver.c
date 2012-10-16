@@ -1,3 +1,12 @@
+/**
+ * NE2000 driver for TOS
+ * 
+ * Based on:
+ * http://wiki.osdev.org/Ne2000
+ * 
+ * 
+ * 
+ */
 #include <kernel.h>
 
 PORT ne2k_driver_port;
@@ -317,7 +326,6 @@ static void ne_readmem(struct ne *ne, unsigned short src, char *dst, unsigned sh
         d = inportw(ne->asic_addr + NE_NOVELL_DATA);
         *dst++ = d;
         *dst++ = d >> 8;
-        // sleep(1);
         len -= 2;
     }
 }
@@ -327,8 +335,6 @@ static void ne_readmem(struct ne *ne, unsigned short src, char *dst, unsigned sh
  */
 static void ne_reset(struct ne *ne) {
     unsigned char byte;
-
-    // Reset the ethernet card
     byte = inportb(ne->asic_addr + NE_NOVELL_RESET);
     outportb(ne->asic_addr + NE_NOVELL_RESET, byte);
     outportb(ne->nic_addr + NE_P0_CR, NE_CR_RD2 | NE_CR_STP);
@@ -458,27 +464,28 @@ void ne_dpc(void *arg) {
 
     // Loop until there are no pending interrupts
     while ((isr = inportb(ne->nic_addr + NE_P0_ISR)) != 0) {
+        // isr = inportb(ne->nic_addr + NE_P0_ISR);
 
-        kprintf("ne_dpc: isr=%d. ", isr);
+        kprintf("ne_dpc: isr=%d.", isr);
 
         // Reset bits for interrupts being acknowledged
         outportb(ne->nic_addr + NE_P0_ISR, isr);
 
         // Packet received
         if (isr & NE_ISR_PRX) {
-            kprintf("New packet arrived.\n");
+            kprintf(" New packet arrived.");
             // ne_receive(ne);
         }
 
         // Packet transmitted
         if (isr & NE_ISR_PTX) {
-            kprintf("Packet transmitted.\n");
+            kprintf(" Packet transmitted.");
             // set_event(&ne->ptx);
         }
 
         // Remote DMA complete
         if (isr & NE_ISR_RDC) {
-            kprintf("Remote DMA complete.\n");
+            kprintf(" Remote DMA complete.");
             // set_event(&ne->rdc);
         }
 
@@ -486,6 +493,7 @@ void ne_dpc(void *arg) {
         outportb(ne->nic_addr + NE_P0_CR, NE_CR_RD2 | NE_CR_STA);
     }
 
+    kprintf("\n");
     // kprintf("IRQ is %x; %d", ne->irq, ne->irq);
 
     // Signal end of interrupt to PIC
@@ -525,15 +533,20 @@ int ne_transmit(pbuf * p) {
     // reset_event(&ne->rdc);
 
     // Set page 0 registers
+    // COMMAND register set to "start" and "nodma" (0x22)
     outportb(ne->nic_addr + NE_P0_CR, NE_CR_RD2 | NE_CR_STA);
 
     // Reset remote DMA complete flag
+    // "Remote DMA complete?" bit is cleared by writing a 1 in bit 6 of ISR (that's odd, but that's the way it works)
     outportb(ne->nic_addr + NE_P0_ISR, NE_ISR_RDC);
 
     // Set up DMA byte count
+    // RBCRx are loaded with the packet size
     outportb(ne->nic_addr + NE_P0_RBCR0, (unsigned char) dma_len); // send low byte counter
     outportb(ne->nic_addr + NE_P0_RBCR1, (unsigned char) (dma_len >> 8)); // send high byte counter
 
+    // RSARx are loaded with 0x00 (low) and target page number (high) respectively.
+    // At this stage, the chip is ready receiving packet data and storing it in the ring buffer for emission.
     // Set up destination address in NIC memory
     dst = ne->rx_page_stop; // for now we only use one tx buffer
     // dst = NE_BUFFER_STOP_PAGE;
@@ -543,25 +556,19 @@ int ne_transmit(pbuf * p) {
     outportb(ne->nic_addr + NE_P0_RSAR1, dst >> 8);
 
     // Set remote DMA write
-    // NE_P0_CR  Command Register
-    // NE_CR_RD1 Remote DMA Command 1
-    // NE_CR_STA Command Register Start
+    // COMMAND register set to "start" and "remote write DMA" (0x12)
     outportb(ne->nic_addr + NE_P0_CR, NE_CR_RD1 | NE_CR_STA);
 
     wrap = 0;
 
-    // kprintf("ne_transmit: payload=%X\n", *((unsigned int *)q->payload));
-
-    // kprintf("p=%d, &p=%d, *p=%d, q=%d, &q=%d, *q=%d\n", p, &p, *p, q, &q, *q);
-    q = p;
-    // kprintf("ne_transmit: payload=%X\n", *((unsigned int *)q->payload));
-
+    // Packets data is now written to the "data port" (that is register 0x10)
+    // of the NIC in a loop (or using an "outsx" if available).
+    // The NIC will then update its remote DMA logic after each written word/dword
+    // and places bytes in the transmit ring buffer.
     for (q = p; q != NULL; q = q->next) {
         len = q->len;
         if (len > 0) {
             data = q->payload;
-
-            // kprintf("Data in this buffer: %x\n", *(unsigned int *)data);
 
             // Finish the last word
             if (wrap) {
@@ -592,9 +599,7 @@ int ne_transmit(pbuf * p) {
                      *dst++ = d;
                      *dst++ = d >> 8;
                      */
-                    // kprintf("data=%x, len=%d | ", *(unsigned short *) data, len2);
                     outportw((unsigned short) (ne->asic_addr + NE_NOVELL_DATA), *(unsigned short *) data);
-                    // outportb((unsigned short)ne->asic_addr + NE_NOVELL_DATA, *(unsigned char *) data);
                     sleep(1);
                     data++;
                     data++;
@@ -620,18 +625,12 @@ int ne_transmit(pbuf * p) {
     }
 
     // Wait for remote DMA complete
+    // Poll ISR register until bit 6 (Remote DMA completed) is set.
     sleep(10);
-    //unsigned char wait;
-    // while (((wait = inportb(ne->nic_addr + 0x7)) & 0x40) == 0);
-    // outportb(ne->nic_addr + 0x7, wait);
+    // unsigned char wait;
+    // while (((wait = inportb(ne->nic_addr + NE_P0_ISR)) & NE_ISR_RDC) == 0);
+    // outportb(ne->nic_addr + NE_P0_ISR, wait);
 
-    /*
-    if (wait_for_object(&ne->rdc, NE_TIMEOUT) < 0) {
-        kprintf(KERN_WARNING "ne2000: timeout waiting for remote dma to complete\n");
-        release_mutex(&ne->txlock);
-        return -EIO;
-    }
-     */
 
     // Set TX buffer start page
     // outportb(ne->nic_addr + NE_P0_TPSR, (unsigned char) dst);
@@ -685,7 +684,7 @@ int ne_setup(struct ne *ne) {
     ne->rx_page_start = NE_BUFFER_START_PAGE;
     // ne->rx_page_stop = ne->rx_page_start + (ne->memsize / NE_PAGE_SIZE) - NE_TXBUF_SIZE * NE_TX_BUFERS;
     ne->rx_page_stop = NE_BUFFER_STOP_PAGE;
-    ne->next_pkt = ne->rx_page_start + 1;
+    ne->next_pkt = ne->rx_page_start + 6; // 0x46 
     ne->rx_ring_start = ne->rx_page_start * NE_PAGE_SIZE;
     ne->rx_ring_end = ne->rx_page_stop * NE_PAGE_SIZE;
 
@@ -698,68 +697,106 @@ int ne_setup(struct ne *ne) {
     outportb(ne->nic_addr + NE_P0_CR, NE_CR_RD2 | NE_CR_STP);
 
     // Set FIFO threshold to 8, no auto-init remote DMA, byte order=80x86, word-wide DMA transfers
-    outportb(ne->nic_addr + NE_P0_DCR, NE_DCR_FT1 | NE_DCR_WTS | NE_DCR_LS);
-
-    // Get Ethernet MAC address
-    ne_readmem(ne, 0, romdata, 16);
-
-    for (i = 0; i < ETHER_ADDR_LEN; i++) {
-        ne->hwaddr.addr[i] = romdata[i * 2];
-    }
-
-    // Set page 0 registers, abort remote DMA, stop NIC
-    outportb(ne->nic_addr + NE_P0_CR, NE_CR_RD2 | NE_CR_STP);
+    //outportb(ne->nic_addr + NE_P0_DCR, NE_DCR_FT1 | NE_DCR_WTS | NE_DCR_LS);
+    outportb(ne->nic_addr + NE_P0_DCR, NE_DCR_FT1 | NE_DCR_LS | 0x10 | NE_DCR_WTS);
 
     // Clear remote byte count registers
     outportb(ne->nic_addr + NE_P0_RBCR0, 0);
     outportb(ne->nic_addr + NE_P0_RBCR1, 0);
 
-    // Initialize receiver (ring-buffer) page stop and boundry
-    outportb(ne->nic_addr + NE_P0_PSTART, ne->rx_page_start);
-    outportb(ne->nic_addr + NE_P0_PSTOP, ne->rx_page_stop);
-    outportb(ne->nic_addr + NE_P0_BNRY, ne->rx_page_start);
-
-    // Enable the following interrupts: receive/transmit complete, receive/transmit error,
-    // receiver overwrite and remote dma complete.
-    outportb(ne->nic_addr + NE_P0_IMR, NE_IMR_PRXE | NE_IMR_PTXE | NE_IMR_RXEE | NE_IMR_TXEE | NE_IMR_OVWE | NE_IMR_RDCE);
-    // outportb(ne->nic_addr + NE_P0_IMR, NE_IMR_PRXE | NE_IMR_PTXE | NE_IMR_RXEE | NE_IMR_TXEE | NE_IMR_OVWE | NE_IMR_RDCE | NE_IMR_CNTE | NE_IMR_RDCE);
-    // outportb(ne->nic_addr + NE_P0_IMR, (unsigned char) 0xFF);
-
-    // Set page 1 registers
-    outportb(ne->nic_addr + NE_P0_CR, NE_CR_PAGE_1 | NE_CR_RD2 | NE_CR_STP);
-
-    // Copy out our station address
-    for (i = 0; i < ETHER_ADDR_LEN; i++) {
-        outportb(ne->nic_addr + NE_P1_PAR0 + i, ne->hwaddr.addr[i]);
-    }
-
-    // Set current page pointer
-    outportb(ne->nic_addr + NE_P1_CURR, ne->next_pkt);
-
-    // Initialize multicast address hashing registers to not accept multicasts
-    for (i = 0; i < 8; i++) {
-        outportb(ne->nic_addr + NE_P1_MAR0 + i, 0);
-    }
-
-    // Set page 0 registers
-    outportb(ne->nic_addr + NE_P0_CR, NE_CR_RD2 | NE_CR_STP);
-
     // Accept broadcast packets
-    // outportb(ne->nic_addr + NE_P0_RCR, NE_RCR_AB);
-    outportb(ne->nic_addr + NE_P0_RCR, NE_RCR_AB | NE_RCR_AR | NE_RCR_AM | NE_RCR_PRO | NE_RCR_MON);
-    // outportb(ne->nic_addr + NE_P0_RCR, (unsigned char) 0xFF);
+    outportb(ne->nic_addr + NE_P0_RCR, NE_RCR_AB);
+
+    // transmit dat register
+    outportb(ne->nic_addr + 0x4, 0x20);
 
     // Take NIC out of loopback
-    outportb(ne->nic_addr + NE_P0_TCR, 0);
+    //outportb(ne->nic_addr + NE_P0_TCR, 0);
+    outportb(ne->nic_addr + NE_P0_TCR, 2);
 
-    // Clear any pending interrupts
-    outportb(ne->nic_addr + NE_P0_ISR, 0xFF);
+    // Initialize receiver (ring-buffer) page stop and boundry
+    // outportb(ne->nic_addr + NE_P0_PSTART, ne->rx_page_start);
+    outportb(ne->nic_addr + NE_P0_PSTART, 0x46);
+    // outportb(ne->nic_addr + NE_P0_BNRY, ne->rx_page_start);
+    outportb(ne->nic_addr + NE_P0_BNRY, 0x46);
+    // outportb(ne->nic_addr + NE_P0_PSTOP, ne->rx_page_stop);
+    outportb(ne->nic_addr + NE_P0_PSTOP, 0x80);
+
+
+    // Set page 1 registers
+    outportb(ne->nic_addr + NE_P1_CR, NE_CR_PAGE_1 | NE_CR_RD2 | NE_CR_STP);
+
+    // Set current page pointer
+    // outportb(ne->nic_addr + NE_P1_CURR, ne->next_pkt); // 0x46
+    outportb(ne->nic_addr + NE_P1_CURR, 0x46); // 0x46
+
+    outportb(ne->nic_addr + 1, 0xb0);
+    outportb(ne->nic_addr + 2, 0xc4);
+    outportb(ne->nic_addr + 3, 0x20);
+    outportb(ne->nic_addr + 4, 0x00);
+    outportb(ne->nic_addr + 5, 0x00);
+    outportb(ne->nic_addr + 6, 0x05);
+
+    // Get Ethernet MAC address
+    // ne_readmem(ne, 0, romdata, 16);
+    //for (i = 0; i < ETHER_ADDR_LEN; i++) {
+    //    ne->hwaddr.addr[i] = romdata[i * 2];
+    // }
+    ne->hwaddr.addr[0] = inportb(ne->nic_addr + 1);
+    ne->hwaddr.addr[1] = inportb(ne->nic_addr + 2);
+    ne->hwaddr.addr[2] = inportb(ne->nic_addr + 3);
+    ne->hwaddr.addr[3] = inportb(ne->nic_addr + 4);
+    ne->hwaddr.addr[4] = inportb(ne->nic_addr + 5);
+    ne->hwaddr.addr[5] = inportb(ne->nic_addr + 6);
 
     // Start NIC
     outportb(ne->nic_addr + NE_P0_CR, NE_CR_RD2 | NE_CR_STA);
 
-    // #define BOB_IMR 0x1b
-    // outportb(ne->nic_addr + 0x1F, 0x1b); //IMR
+    // Set page 0 registers, abort remote DMA, stop NIC
+    // outportb(ne->nic_addr + NE_P0_CR, NE_CR_RD2 | NE_CR_STP);
+
+    // Enable the following interrupts: receive/transmit complete, receive/transmit error,
+    // receiver overwrite and remote dma complete.
+    // outportb(ne->nic_addr + NE_P0_IMR, NE_IMR_PRXE | NE_IMR_PTXE | NE_IMR_RXEE | NE_IMR_TXEE | NE_IMR_RDCE | NE_IMR_OVWE);
+
+    /**
+     * Programming registers of the NE2000 are collected in pages.
+     * Page 0 contains most of the control and status registers while
+     * page 1 contains physical (PAR0..PAR5)
+     * and multicast addresses (MAR0..MAR7) to be checked by the card.
+     * 
+     */
+
+
+    /*
+    // Copy out our station address (PAR0..PAR5)
+    for (i = 0; i < ETHER_ADDR_LEN; i++) {
+        outportb(ne->nic_addr + NE_P1_PAR0 + i, ne->hwaddr.addr[i]);
+    }
+
+    // Initialize multicast address hashing registers to not accept multicasts
+    for (i = 0; i < 8; i++) {
+        outportb(ne->nic_addr + NE_P1_MAR0 + i, 0);
+        // outportb(ne->nic_addr + NE_P1_MAR0 + i, 0xFF);
+    }
+     * */
+
+    // Set page 0 registers
+    // outportb(ne->nic_addr + NE_P0_CR, NE_CR_RD2 | NE_CR_STP);
+
+    // Clear any pending interrupts
+    /**
+     * ISR: Interrupt Status Register (07H; Type=R/W in Page0)
+     * This register reflects the NIC status.
+     * The host reads it to determine the cause of an interrupt.
+     * Individual bits are cleared by writing a "1" into the corresponding bit. 
+     * It must be cleared after power up. 
+     */
+    outportb(ne->nic_addr + NE_P0_ISR, 0xFF); // ISR
+
+    // #define BOB_IMR 0x1b (enable overflow interrupt)
+    outportb(ne->nic_addr + NE_P0_IMR, 0x1b); // IMR
+    outportb(ne->nic_addr + 0x0D, 0x00); // TMR
 
     // Create packet device
     // ne->devno = dev_make("eth#", &ne_driver, unit, ne);
@@ -773,9 +810,12 @@ void ne2k_driver_notifier(PROCESS self, PARAM param) {
     // NE2K_Message msg;
     while (1) {
         kprintf("Waiting for IRQ...\n");
+        outportb(__ne->nic_addr + NE_P0_IMR, 0x1B);
         wait_for_interrupt(NE2K_IRQ);
-        ne_dpc(__ne);
+        outportb(__ne->nic_addr + NE_P0_IMR, 0);
         kprintf("Got an IRQ!\n");
+        ne_dpc(__ne);
+
     }
 
 }
@@ -858,6 +898,7 @@ void ne_test_transmit() {
         p.tot_len = 42; //64;  // Total length of buffer + additionally chained buffers.
         p.size = (sizeof (unsigned int)); // Allocated size of buffer
         kprintf("ne_test: Trying to send a packet...\n");
+        ne_transmit(&p);
         ne_transmit(&p);
     } else {
         kprintf("test failed: ne2k has not been initialized\n");
@@ -944,7 +985,7 @@ void init_ne2k_test() {
     p.tot_len = 64; // Total length of buffer + additionally chained buffers.
     p.size = (sizeof (unsigned int)); // Allocated size of buffer
     kprintf("ne_test: Trying to send a packet...\n");
-    ne_transmit(&p);
+    // ne_transmit(&p);
     sleep(10);
     // kprintf("Trying to receive a packet...\n");
     // ne_receive(__ne);
