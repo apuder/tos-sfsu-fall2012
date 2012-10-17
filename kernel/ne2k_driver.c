@@ -13,9 +13,6 @@ PORT ne2k_driver_port;
 
 struct ne *__ne;
 
-typedef unsigned short uid_t;
-typedef unsigned short gid_t;
-
 
 #define NtoHs(n) ( (((n) & 0xFF00) >> 8) | (((n) & 0x00FF) << 8) )
 #define HtoNs(n) ( (((n) & 0xFF00) >> 8) | (((n) & 0x00FF) << 8) )
@@ -33,7 +30,6 @@ typedef unsigned short gid_t;
 #define ETHER_HLEN 14
 #define ETHER_ADDR_LEN 6
 #define DPC_QUEUED_BIT 0
-#define DEVNAMELEN      32
 
 #define NE_BUFFER_START_PAGE 0x40
 #define NE_BUFFER_STOP_PAGE 0x4000
@@ -242,17 +238,8 @@ struct eth_hdr {
     unsigned short type;
 };
 
-typedef struct pbuf {
-    struct pbuf *next;
-    unsigned short flags;
-    unsigned short ref;
-    void *payload;
-    int tot_len; // Total length of buffer + additionally chained buffers.
-    int len; // Length of this buffer.
-    int size; // Allocated size of buffer
-} pbuf;
 
-typedef unsigned int dev_t;
+
 struct dpc *dpc_queue_tail;
 struct dpc *dpc_queue_head;
 
@@ -277,24 +264,6 @@ struct ne {
     struct event rdc; // Remote DMA completed event
     struct event ptx; // Packet transmitted event
     // struct mutex txlock;               // Transmit lock
-};
-
-struct dev {
-    char name[DEVNAMELEN];
-    struct driver *driver;
-    struct unit *unit;
-    void *privdata;
-    int refcnt;
-    uid_t uid;
-    gid_t gid;
-    int mode;
-    struct devfile *files;
-    int reads;
-    int writes;
-    int input;
-    int output;
-    struct netif *netif;
-    int (*receive)(struct netif *netif, pbuf * p);
 };
 
 struct netstats *netstats;
@@ -378,6 +347,8 @@ void ne_get_packet(struct ne *ne, unsigned short src, char *dst, unsigned short 
     ne_readmem(ne, src, dst, len);
 }
 
+
+
 void ne_receive(struct ne *ne) {
     struct recv_ring_desc packet_hdr;
     unsigned short packet_ptr;
@@ -389,9 +360,9 @@ void ne_receive(struct ne *ne) {
     // Set page 1 registers
     outportb(ne->nic_addr + NE_P0_CR, NE_CR_PAGE_1 | NE_CR_RD2 | NE_CR_STA);
 
-    // kprintf("Receiving packet... %d ... %d", inportb(ne->nic_addr + NE_P1_CURR), ne->next_pkt);
+    kprintf("Receiving packet... %d ... %d", inportb(ne->nic_addr + NE_P1_CURR), ne->next_pkt);
 
-    while (ne->next_pkt != inportb(ne->nic_addr + NE_P1_CURR)) {
+//    while (ne->next_pkt != inportb(ne->nic_addr + NE_P1_CURR)) {
         // Get pointer to buffer header structure
         packet_ptr = ne->next_pkt * NE_PAGE_SIZE;
 
@@ -417,8 +388,9 @@ void ne_receive(struct ne *ne) {
             }
 
             kprintf("ne2000: received packet, %d bytes\n", len);
-            // rc = dev_receive(ne->devno, p);
-            rc = 0;
+            rc = dev_receive(ne->devno, p);
+            
+//            rc = 0;
             if (rc < 0) {
                 kprintf("ne2000: error %d processing packet\n", rc);
                 // pbuf_free(p);
@@ -445,7 +417,7 @@ void ne_receive(struct ne *ne) {
 
         // Set page 1 registers
         outportb(ne->nic_addr + NE_P0_CR, NE_CR_PAGE_1 | NE_CR_RD2 | NE_CR_STA);
-    }
+//    }
 }
 
 /*
@@ -474,7 +446,7 @@ void ne_dpc(void *arg) {
         // Packet received
         if (isr & NE_ISR_PRX) {
             kprintf(" New packet arrived.");
-            // ne_receive(ne);
+            ne_receive(ne);
         }
 
         // Packet transmitted
