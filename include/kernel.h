@@ -227,11 +227,52 @@ void init_timer();
 
 
 /*=====>>> inout.c <<<======================================================*/
-
+/*
+ 
 unsigned char inportb (unsigned short port);
 unsigned short inportw (unsigned short port);
 void outportb (unsigned short port, unsigned char value);
+void outportw (unsigned short port, unsigned short value);
+*/
+/*=====>>> dev.c <<<======================================================*/
+#define ENODEV          19               // Operation not supported by device
+#define MAX_DEVS        64
+#define ENOSYS          40               // Function not implemented
+#define DEVNAMELEN      32
 
+typedef unsigned short uid_t;
+typedef unsigned short gid_t;
+typedef unsigned int dev_t;
+
+typedef struct pbuf {
+    struct pbuf *next;
+    unsigned short flags;
+    unsigned short ref;
+    void *payload;
+    int tot_len; // Total length of buffer + additionally chained buffers.
+    int len; // Length of this buffer.
+    int size; // Allocated size of buffer
+} pbuf;
+
+struct dev {
+    char name[DEVNAMELEN];
+    struct driver *driver;
+    struct unit *unit;
+    void *privdata;
+    int refcnt;
+    uid_t uid;
+    gid_t gid;
+    int mode;
+    struct devfile *files;
+    int reads;
+    int writes;
+    int input;
+    int output;
+    struct netif *netif;
+    int (*receive)(struct netif *netif, pbuf * p);
+};
+
+int dev_receive(dev_t devno, struct pbuf *p);
 
 /*=====>>> com.c <<<=====================================================*/
 
@@ -273,6 +314,7 @@ void init_keyb();
 #define NE2K_PORT	0x300
 
 extern PORT ne2k_driver_port;
+
 
 typedef struct _NE2K_Driver_Message {
     
