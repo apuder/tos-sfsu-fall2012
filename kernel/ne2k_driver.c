@@ -1,10 +1,10 @@
 /**
  * NE2000 driver for TOS
  * 
- * Based on:
+ * Bibliography:
  * http://wiki.osdev.org/Ne2000
- * 
- * 
+ * http://www.jbox.dk/sanos/source/sys/dev/ne2000.c.html
+ * All resources were accessed during Fall 2012
  * 
  */
 #include <kernel.h>
@@ -16,19 +16,6 @@ struct ne *__ne;
 typedef unsigned short uid_t;
 typedef unsigned short gid_t;
 
-
-#define NtoHs(n) ( (((n) & 0xFF00) >> 8) | (((n) & 0x00FF) << 8) )
-#define HtoNs(n) ( (((n) & 0xFF00) >> 8) | (((n) & 0x00FF) << 8) )
-#define NtoHl(n) ( (((n) & 0xFF000000) >> 24) | (((n) & 0x00FF0000) >> 8) \
-| (((n) & 0x0000FF00) << 8) | (((n) & 0x000000FF) << 24) )
-#define HtoNl(n) ( (((n) & 0xFF000000) >> 24) | (((n) & 0x00FF0000) >> 8) \
-| (((n) & 0x0000FF00) << 8) | (((n) & 0x000000FF) << 24) )
-
-// #define KEYBD           0x60
-// #define PORT_B          0x61
-// #define KBIT            0x80
-// #define MAXSIZE         1024
-
 #define ETHERNET_POLYNOMIAL 0x04c11db7U
 #define ETHER_HLEN 14
 #define ETHER_ADDR_LEN 6
@@ -37,6 +24,11 @@ typedef unsigned short gid_t;
 
 #define NE_BUFFER_START_PAGE 0x40
 #define NE_BUFFER_STOP_PAGE 0x4000
+
+// Card config
+#define NE_RX_PAGE_START 0x46
+#define NE_RX_PAGE_BNDRY 0x46
+#define NE_RX_PAGE_STOP  0x80
 
 // Page 0 register offsets
 #define NE_P0_CR        0x00           // Command Register
@@ -300,10 +292,8 @@ struct dev {
 struct netstats *netstats;
 
 static void ne_readmem(struct ne *ne, unsigned short src, char *dst, unsigned short len) {
-    // original signature:
-    // static void ne_readmem(struct ne *ne, unsigned short src, void *dst, unsigned short len) {
-
     // Word align length
+    // i.e., if it's odd make it even, because we are sending words not bytes
     if (len & 1) len++;
 
     // Abort any remote DMA already in progress
@@ -374,7 +364,6 @@ void ne_get_packet(struct ne *ne, unsigned short src, char *dst, unsigned short 
         src = ne->rx_ring_start;
         dst += split;
     }
-
     ne_readmem(ne, src, dst, len);
 }
 
@@ -384,50 +373,63 @@ void ne_receive(struct ne *ne) {
     unsigned short len;
     unsigned char bndry;
     pbuf *p, *q;
+    pbuf data_buffer;
     int rc;
+    int i;
+    unsigned short packet_header_length = (unsigned short) sizeof (struct recv_ring_desc);
 
     // Set page 1 registers
     outportb(ne->nic_addr + NE_P0_CR, NE_CR_PAGE_1 | NE_CR_RD2 | NE_CR_STA);
 
-    // kprintf("Receiving packet... %d ... %d", inportb(ne->nic_addr + NE_P1_CURR), ne->next_pkt);
+    kprintf("Receiving packet:0x%X ... 0x%X\n", inportb(ne->nic_addr + NE_P1_CURR), ne->next_pkt);
 
-    while (ne->next_pkt != inportb(ne->nic_addr + NE_P1_CURR)) {
+    if (ne->next_pkt != inportb(ne->nic_addr + NE_P1_CURR)) {
         // Get pointer to buffer header structure
         packet_ptr = ne->next_pkt * NE_PAGE_SIZE;
+        // packet_ptr = inportb(ne->nic_addr + NE_P0_BNRY) * NE_PAGE_SIZE;
 
         // Read receive ring descriptor
-        ne_readmem(ne, packet_ptr, &packet_hdr, sizeof (struct recv_ring_desc));
+        ne_readmem(ne, packet_ptr, &packet_hdr, packet_header_length);
 
         // Allocate packet buffer
-        len = packet_hdr.count - sizeof (struct recv_ring_desc);
-        // p = pbuf_alloc(PBUF_RAW, len, PBUF_RW);
-        // remove this
-        p->tot_len = 64;
-        p->len = 64;
+        kprintf("header:0x%02X next:0x%02X.\n", packet_hdr.rsr, packet_hdr.next_pkt);
+        p = &data_buffer;
         p->next = NULL;
-        p->payload = NULL;
-        // end remove this
+        p->len = packet_hdr.count - packet_header_length;
+        p->tot_len = p->len;
 
         // Get packet from nic and send to upper layer
-        if (p != NULL) {
-            packet_ptr += sizeof (struct recv_ring_desc);
+        if (p == NULL) {
+            kprintf("ne_receive: packet dropped\n");
+
+        } else {
+
+            packet_ptr += 4; //sizeof (struct recv_ring_desc);
+
+            ne_readmem(ne, packet_ptr, p->payload, (unsigned short) p->len);
+            // ne_get_packet(ne, packet_ptr, p->payload, (unsigned short) p->len);
+
+            /*
             for (q = p; q != NULL; q = q->next) {
                 ne_get_packet(ne, packet_ptr, q->payload, (unsigned short) q->len);
                 packet_ptr += q->len;
             }
+             */
 
-            kprintf("ne2000: received packet, %d bytes\n", len);
+            // show what we got!
+            kprintf("DATA=");
+            for (i = 0; i < p->len; i++) {
+                kprintf("%02x:", *((unsigned char *) p->payload + i));
+            }
+
+            kprintf(", %d bytes\n", packet_hdr.count);
+
             // rc = dev_receive(ne->devno, p);
             rc = 0;
             if (rc < 0) {
-                kprintf("ne2000: error %d processing packet\n", rc);
+                kprintf("ne_receive: error %d processing packet\n", rc);
                 // pbuf_free(p);
             }
-        } else {
-            // Drop packet
-            kprintf("ne2000: packet dropped\n");
-            // netstats->link.memerr++;
-            // netstats->link.drop++;
         }
 
         // Update next packet pointer
@@ -436,15 +438,20 @@ void ne_receive(struct ne *ne) {
         // Set page 0 registers
         outportb(ne->nic_addr + NE_P0_CR, NE_CR_PAGE_0 | NE_CR_RD2 | NE_CR_STA);
 
-        // Update boundry pointer
+        // Update boundary pointer
         bndry = ne->next_pkt - 1;
-        if (bndry < ne->rx_page_start) bndry = ne->rx_page_stop - 1;
-        outportb(ne->nic_addr + NE_P0_BNRY, bndry);
+        if (bndry < ne->rx_page_start) {
+            bndry = ne->rx_page_stop - 1;
+        }
 
-        kprintf("start: %02x stop: %02x next: %02x bndry: %02x\n", ne->rx_page_start, ne->rx_page_stop, ne->next_pkt, bndry);
+        // Release the buffer by increasing the boundary pointer.
+        // outportb(ne->nic_addr + NE_P0_BNRY, bndry);
+        outportb(ne->nic_addr + NE_P0_BNRY, packet_hdr.next_pkt);
+
+        kprintf("start:0x%02x stop:0x%02x next:0x%02x bndry:0x%02x\n", ne->rx_page_start, ne->rx_page_stop, ne->next_pkt, bndry);
 
         // Set page 1 registers
-        outportb(ne->nic_addr + NE_P0_CR, NE_CR_PAGE_1 | NE_CR_RD2 | NE_CR_STA);
+        // outportb(ne->nic_addr + NE_P0_CR, NE_CR_PAGE_1 | NE_CR_RD2 | NE_CR_STA);
     }
 }
 
@@ -457,7 +464,7 @@ void ne_dpc(void *arg) {
     struct ne *ne = arg;
     unsigned char isr;
 
-    kprintf("ne_dpc called (interrupt!)\n");
+    // kprintf("ne_dpc called (interrupt!)\n");
 
     // Select page 0
     outportb(ne->nic_addr + NE_P0_CR, NE_CR_RD2 | NE_CR_STA);
@@ -466,26 +473,26 @@ void ne_dpc(void *arg) {
     while ((isr = inportb(ne->nic_addr + NE_P0_ISR)) != 0) {
         // isr = inportb(ne->nic_addr + NE_P0_ISR);
 
-        kprintf("ne_dpc: isr=%d.", isr);
+        kprintf("ne_dpc: interrupt! isr=%d.\n", isr);
 
         // Reset bits for interrupts being acknowledged
         outportb(ne->nic_addr + NE_P0_ISR, isr);
 
         // Packet received
         if (isr & NE_ISR_PRX) {
-            kprintf(" New packet arrived.");
-            // ne_receive(ne);
+            kprintf(" New packet arrived.\n");
+            ne_receive(ne);
         }
 
         // Packet transmitted
         if (isr & NE_ISR_PTX) {
-            kprintf(" Packet transmitted.");
+            kprintf(" Packet transmitted.\n");
             // set_event(&ne->ptx);
         }
 
         // Remote DMA complete
         if (isr & NE_ISR_RDC) {
-            kprintf(" Remote DMA complete.");
+            kprintf(" Remote DMA complete.\n");
             // set_event(&ne->rdc);
         }
 
@@ -493,7 +500,6 @@ void ne_dpc(void *arg) {
         outportb(ne->nic_addr + NE_P0_CR, NE_CR_RD2 | NE_CR_STA);
     }
 
-    kprintf("\n");
     // kprintf("IRQ is %x; %d", ne->irq, ne->irq);
 
     // Signal end of interrupt to PIC
@@ -514,23 +520,11 @@ int ne_transmit(pbuf * p) {
     int i;
 
     kprintf("ne_transmit: len=%d tot_len=%d\n", p->len, p->tot_len);
-    kprintf("ne_transmit: payload=%X\n", *((unsigned int *) p->payload));
+    // kprintf("ne_transmit: payload=%X\n", *((unsigned int *) p->payload));
 
-    // Get transmit lock
-    /*
-    if (wait_for_object(&ne->txlock, NE_TXTIMEOUT) < 0) {
-        kprintf(KERN_WARNING "ne2000: timeout waiting for tx lock\n");
-        return -ETIMEOUT;
-    }
-     */
-
-    // We need to transfer a whole number of words (2-byte), so dma_len has to be pair
+    // We need to transfer a whole number of words (2-byte), so dma_len has to be even
     dma_len = p->tot_len;
     if (dma_len & 1) dma_len++;
-
-    // Clear packet transmitted and dma complete event
-    // reset_event(&ne->ptx);
-    // reset_event(&ne->rdc);
 
     // Set page 0 registers
     // COMMAND register set to "start" and "nodma" (0x22)
@@ -684,7 +678,7 @@ int ne_setup(struct ne *ne) {
     ne->rx_page_start = NE_BUFFER_START_PAGE;
     // ne->rx_page_stop = ne->rx_page_start + (ne->memsize / NE_PAGE_SIZE) - NE_TXBUF_SIZE * NE_TX_BUFERS;
     ne->rx_page_stop = NE_BUFFER_STOP_PAGE;
-    ne->next_pkt = ne->rx_page_start + 6; // 0x46 
+    ne->next_pkt = NE_RX_PAGE_START; // 0x46 
     ne->rx_ring_start = ne->rx_page_start * NE_PAGE_SIZE;
     ne->rx_ring_end = ne->rx_page_stop * NE_PAGE_SIZE;
 
@@ -693,12 +687,23 @@ int ne_setup(struct ne *ne) {
         return 0;
     }
 
+    // READ MAC !
+    // Set page 0 registers, abort remote DMA, stop NIC
+    outportb(ne->nic_addr + NE_P0_CR, NE_CR_RD2 | NE_CR_STP);
+    // Set FIFO threshold to 8, auto-init remote DMA, byte order=80x86, word-wide DMA transfers
+    outportb(ne->nic_addr + NE_P0_DCR, NE_DCR_FT1 | NE_DCR_LS | NE_DCR_AR | NE_DCR_WTS);
+    ne_readmem(ne, 0, romdata, 16);
+    for (i = 0; i < ETHER_ADDR_LEN; i++) {
+        ne->hwaddr.addr[i] = romdata[i * 2];
+    }
+
     // Set page 0 registers, abort remote DMA, stop NIC
     outportb(ne->nic_addr + NE_P0_CR, NE_CR_RD2 | NE_CR_STP);
 
     // Set FIFO threshold to 8, no auto-init remote DMA, byte order=80x86, word-wide DMA transfers
     //outportb(ne->nic_addr + NE_P0_DCR, NE_DCR_FT1 | NE_DCR_WTS | NE_DCR_LS);
-    outportb(ne->nic_addr + NE_P0_DCR, NE_DCR_FT1 | NE_DCR_LS | 0x10 | NE_DCR_WTS);
+    // Set FIFO threshold to 8, auto-init remote DMA, byte order=80x86, word-wide DMA transfers
+    outportb(ne->nic_addr + NE_P0_DCR, NE_DCR_FT1 | NE_DCR_LS | NE_DCR_AR | NE_DCR_WTS);
 
     // Clear remote byte count registers
     outportb(ne->nic_addr + NE_P0_RBCR0, 0);
@@ -707,47 +712,31 @@ int ne_setup(struct ne *ne) {
     // Accept broadcast packets
     outportb(ne->nic_addr + NE_P0_RCR, NE_RCR_AB);
 
-    // transmit dat register
+    // transmit data register
     outportb(ne->nic_addr + 0x4, 0x20);
 
     // Take NIC out of loopback
     //outportb(ne->nic_addr + NE_P0_TCR, 0);
     outportb(ne->nic_addr + NE_P0_TCR, 2);
 
-    // Initialize receiver (ring-buffer) page stop and boundry
+    // Initialize receiver (ring-buffer) page stop and boundary
     // outportb(ne->nic_addr + NE_P0_PSTART, ne->rx_page_start);
-    outportb(ne->nic_addr + NE_P0_PSTART, 0x46);
+    outportb(ne->nic_addr + NE_P0_PSTART, NE_RX_PAGE_START); // 0x46
     // outportb(ne->nic_addr + NE_P0_BNRY, ne->rx_page_start);
-    outportb(ne->nic_addr + NE_P0_BNRY, 0x46);
+    outportb(ne->nic_addr + NE_P0_BNRY, NE_RX_PAGE_BNDRY); // 0x46
     // outportb(ne->nic_addr + NE_P0_PSTOP, ne->rx_page_stop);
-    outportb(ne->nic_addr + NE_P0_PSTOP, 0x80);
-
+    outportb(ne->nic_addr + NE_P0_PSTOP, NE_RX_PAGE_STOP); // 0x80
 
     // Set page 1 registers
     outportb(ne->nic_addr + NE_P1_CR, NE_CR_PAGE_1 | NE_CR_RD2 | NE_CR_STP);
 
     // Set current page pointer
-    // outportb(ne->nic_addr + NE_P1_CURR, ne->next_pkt); // 0x46
-    outportb(ne->nic_addr + NE_P1_CURR, 0x46); // 0x46
+    outportb(ne->nic_addr + NE_P1_CURR, ne->next_pkt); // 0x46
 
-    outportb(ne->nic_addr + 1, 0xb0);
-    outportb(ne->nic_addr + 2, 0xc4);
-    outportb(ne->nic_addr + 3, 0x20);
-    outportb(ne->nic_addr + 4, 0x00);
-    outportb(ne->nic_addr + 5, 0x00);
-    outportb(ne->nic_addr + 6, 0x05);
-
-    // Get Ethernet MAC address
-    // ne_readmem(ne, 0, romdata, 16);
-    //for (i = 0; i < ETHER_ADDR_LEN; i++) {
-    //    ne->hwaddr.addr[i] = romdata[i * 2];
-    // }
-    ne->hwaddr.addr[0] = inportb(ne->nic_addr + 1);
-    ne->hwaddr.addr[1] = inportb(ne->nic_addr + 2);
-    ne->hwaddr.addr[2] = inportb(ne->nic_addr + 3);
-    ne->hwaddr.addr[3] = inportb(ne->nic_addr + 4);
-    ne->hwaddr.addr[4] = inportb(ne->nic_addr + 5);
-    ne->hwaddr.addr[5] = inportb(ne->nic_addr + 6);
+    // Copy out our station address (PAR0..PAR5)
+    for (i = 0; i < ETHER_ADDR_LEN; i++) {
+        outportb(ne->nic_addr + NE_P1_PAR0 + i, ne->hwaddr.addr[i]);
+    }
 
     // Start NIC
     outportb(ne->nic_addr + NE_P0_CR, NE_CR_RD2 | NE_CR_STA);
@@ -769,11 +758,6 @@ int ne_setup(struct ne *ne) {
 
 
     /*
-    // Copy out our station address (PAR0..PAR5)
-    for (i = 0; i < ETHER_ADDR_LEN; i++) {
-        outportb(ne->nic_addr + NE_P1_PAR0 + i, ne->hwaddr.addr[i]);
-    }
-
     // Initialize multicast address hashing registers to not accept multicasts
     for (i = 0; i < 8; i++) {
         outportb(ne->nic_addr + NE_P1_MAR0 + i, 0);
@@ -871,38 +855,38 @@ void ne_send_data(struct eth_addr * dst_addr, void * data, int length) {
 }
 
 void ne_test_transmit() {
-    if (initialized) {
-        //unsigned int __data__ = 0xDEADBEEF;
-        char __data__[] = {
-            // destination
-            // 0xD1, 0xE6, 0xAA, 0xDE, 0xAD, 0xBE,
-            0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF,
-
-            // source
-            __ne->hwaddr.addr[0], __ne->hwaddr.addr[1], __ne->hwaddr.addr[2],
-            __ne->hwaddr.addr[3], __ne->hwaddr.addr[4], __ne->hwaddr.addr[5],
-
-            // type
-            0x08, 0x06,
-
-            // padding
-            0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-            0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-            0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-            0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0
-        };
-        pbuf p;
-        p.next = NULL;
-        p.payload = &__data__;
-        p.len = 42; // Length of this buffer.
-        p.tot_len = 42; //64;  // Total length of buffer + additionally chained buffers.
-        p.size = (sizeof (unsigned int)); // Allocated size of buffer
-        kprintf("ne_test: Trying to send a packet...\n");
-        ne_transmit(&p);
-        ne_transmit(&p);
-    } else {
+    if (initialized != 1) {
         kprintf("test failed: ne2k has not been initialized\n");
+        return;
     }
+
+    char __data__[] = {
+        // destination
+        // 0xD1, 0xE6, 0xAA, 0xDE, 0xAD, 0xBE,
+        0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF,
+
+        // source
+        __ne->hwaddr.addr[0], __ne->hwaddr.addr[1], __ne->hwaddr.addr[2],
+        __ne->hwaddr.addr[3], __ne->hwaddr.addr[4], __ne->hwaddr.addr[5],
+
+        // type (ARP)
+        0x08, 0x06,
+
+        // padding
+        0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+        0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+        0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+        0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0
+    };
+
+    pbuf p;
+    p.next = NULL;
+    p.payload = &__data__;
+    p.len = 42; // Length of this buffer.
+    p.tot_len = 42; //64;  // Total length of buffer + additionally chained buffers.
+    p.size = (sizeof (unsigned int)); // Allocated size of buffer
+    kprintf("ne_test: Trying to send a packet...\n");
+    ne_transmit(&p);
 }
 
 /*-------------------------------------------------------------------*\
@@ -911,18 +895,6 @@ void ne_test_transmit() {
 void init_ne2k_driver() {
     ne2k_driver_port = create_process(ne2k_driver_process, 6, 0, "NE2K Driver process");
     resign();
-}
-
-unsigned long ether_crc(int length, unsigned char *data) {
-    int crc = -1;
-    while (--length >= 0) {
-        unsigned char current_octet = *data++;
-        int bit;
-        for (bit = 0; bit < 8; bit++, current_octet >>= 1) {
-            crc = (crc << 1) ^ ((crc < 0) ^ (current_octet & 1) ? ETHERNET_POLYNOMIAL : 0);
-        }
-    }
-    return crc;
 }
 
 void init_ne2k_test() {
@@ -935,7 +907,6 @@ void init_ne2k_test() {
     sleep(1);
 
     ne_show_info(__ne);
-
 
     probe_result = ne_probe(__ne);
     kprintf("ne_test: Probe result was: %d.", probe_result);
@@ -973,21 +944,4 @@ void init_ne2k_test() {
         // crc
         0, 1, 2, 3
     };
-
-    kprintf("(%d)", *(unsigned int *) data[60]);
-    data[60] = ether_crc(60, data);
-    kprintf("(%d)\n", *(unsigned int *) data[60]);
-
-    pbuf p;
-    p.next = NULL;
-    p.payload = &data;
-    p.len = 64; // Length of this buffer.
-    p.tot_len = 64; // Total length of buffer + additionally chained buffers.
-    p.size = (sizeof (unsigned int)); // Allocated size of buffer
-    kprintf("ne_test: Trying to send a packet...\n");
-    // ne_transmit(&p);
-    sleep(10);
-    // kprintf("Trying to receive a packet...\n");
-    // ne_receive(__ne);
 }
-
