@@ -1,5 +1,16 @@
 *.o
-*.jar
 *.DS_Store
 *.bin
 *.img
+*.jar
+ttc.jar
+bochsout.txt
+bochsrc
+.bochsrc
+parport.out
+ne2k-tx.log
+ne2k-txdump.txt
+MakeVars
+tools/fat/
+image/disk_image
+nbproject/

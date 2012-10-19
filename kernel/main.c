@@ -13,6 +13,6 @@ void kernel_main()
     init_com();
     init_keyb();
     init_shell();
-
+    init_ne2k_driver();
     while (1);
 }
