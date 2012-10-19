@@ -367,6 +367,25 @@ void ne_get_packet(struct ne *ne, unsigned short src, char *dst, unsigned short 
     ne_readmem(ne, src, dst, len);
 }
 
+void display_packet(void *payload, int size) {
+    int i;
+    int sender_word = 6;
+    kprintf("Sender = ");
+    for (i = sender_word; i < sender_word + 6; i++) {
+        kprintf("%02x:", *((unsigned char *) payload + i));
+    }
+    kprintf("\nPacketType = ");
+    for (; i < sender_word + 8; i++) {
+        kprintf("%02x:", *((unsigned char *) payload + i));
+    }
+//    kprintf("\nDATA = ");
+//    for (i = 0; i < size-1; i++) {
+//        kprintf("%02x:", *((unsigned char *) payload + i));
+//    }
+
+
+}
+
 void ne_receive(struct ne *ne) {
     struct recv_ring_desc packet_hdr;
     unsigned short packet_ptr;
@@ -417,13 +436,22 @@ void ne_receive(struct ne *ne) {
              */
 
             // show what we got!
-            kprintf("DATA=");
+//            display_packet(p->payload, p->len);
+            int sender_word = 6;
+            kprintf("Sender = ");
+            for (i = sender_word; i < sender_word + 6; i++) {
+                kprintf("%02x:", *((unsigned char *) p->payload + i));
+            }
+            kprintf("\nPacketType = ");
+            for (; i < sender_word + 8; i++) {
+                kprintf("%02x:", *((unsigned char *) p->payload + i));
+            }
+            kprintf("\nDATA = ");
             for (i = 0; i < p->len; i++) {
                 kprintf("%02x:", *((unsigned char *) p->payload + i));
             }
 
             kprintf(", %d bytes\n", packet_hdr.count);
-
             // rc = dev_receive(ne->devno, p);
             rc = 0;
             if (rc < 0) {
@@ -453,6 +481,7 @@ void ne_receive(struct ne *ne) {
         // Set page 1 registers
         // outportb(ne->nic_addr + NE_P0_CR, NE_CR_PAGE_1 | NE_CR_RD2 | NE_CR_STA);
     }
+    ne_setup(__ne);
 }
 
 /*
@@ -519,7 +548,7 @@ int ne_transmit(pbuf * p) {
     pbuf *q;
     int i;
 
-    kprintf("ne_transmit: len=%d tot_len=%d\n", p->len, p->tot_len);
+    //    kprintf("ne_transmit: len=%d tot_len=%d\n", p->len, p->tot_len);
     // kprintf("ne_transmit: payload=%X\n", *((unsigned int *) p->payload));
 
     // We need to transfer a whole number of words (2-byte), so dma_len has to be even
@@ -529,6 +558,11 @@ int ne_transmit(pbuf * p) {
     // Set page 0 registers
     // COMMAND register set to "start" and "nodma" (0x22)
     outportb(ne->nic_addr + NE_P0_CR, NE_CR_RD2 | NE_CR_STA);
+
+
+    //clear pending interupts
+    //    outportb(ne->nic_addr + NE_P0_ISR, 0xFF); // ISR
+
 
     // Reset remote DMA complete flag
     // "Remote DMA complete?" bit is cleared by writing a 1 in bit 6 of ISR (that's odd, but that's the way it works)
@@ -652,9 +686,12 @@ int ne_transmit(pbuf * p) {
     }
      */
 
-    kprintf("ne_transmit: packet transmitted\n");
+    //    kprintf("ne_transmit: packet transmitted\n");
     // pbuf_free(p);
     // release_mutex(&ne->txlock);
+
+    //Reset registers
+    ne_setup(__ne);
     return 0;
 }
 
@@ -698,7 +735,7 @@ int ne_setup(struct ne *ne) {
     }
 
     // Set page 0 registers, abort remote DMA, stop NIC
-    outportb(ne->nic_addr + NE_P0_CR, NE_CR_RD2 | NE_CR_STP);
+    //    outportb(ne->nic_addr + NE_P0_CR, NE_CR_RD2 | NE_CR_STP);
 
     // Set FIFO threshold to 8, no auto-init remote DMA, byte order=80x86, word-wide DMA transfers
     //outportb(ne->nic_addr + NE_P0_DCR, NE_DCR_FT1 | NE_DCR_WTS | NE_DCR_LS);
@@ -793,11 +830,11 @@ int ne_setup(struct ne *ne) {
 void ne2k_driver_notifier(PROCESS self, PARAM param) {
     // NE2K_Message msg;
     while (1) {
-        kprintf("Waiting for IRQ...\n");
+        //        kprintf("Waiting for IRQ...\n");
         outportb(__ne->nic_addr + NE_P0_IMR, 0x1B);
         wait_for_interrupt(NE2K_IRQ);
         outportb(__ne->nic_addr + NE_P0_IMR, 0);
-        kprintf("Got an IRQ!\n");
+        //        kprintf("Got an IRQ!\n");
         ne_dpc(__ne);
 
     }
@@ -944,4 +981,7 @@ void init_ne2k_test() {
         // crc
         0, 1, 2, 3
     };
+    // Start NIC
+    outportb(__ne->nic_addr + NE_P0_CR, NE_CR_RD2 | NE_CR_STA);
+
 }

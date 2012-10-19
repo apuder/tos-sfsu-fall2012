@@ -273,6 +273,7 @@ typedef struct _NE2K_Driver_Message {
 
 void init_ne2k_driver();
 void init_ne2k_test();
+void ne_test_transmit();
 
 /*=====>>> shell.c <<<===================================================*/
 
