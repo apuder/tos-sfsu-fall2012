@@ -25,10 +25,10 @@ int k_memcmp(const void* b1, const void* b2, int len);
 
 /*=====>>> mem.c <<<========================================================*/
 
-typedef unsigned       MEM_ADDR;
-typedef unsigned char  BYTE;
+typedef unsigned MEM_ADDR;
+typedef unsigned char BYTE;
 typedef unsigned short WORD;
-typedef unsigned       LONG;
+typedef unsigned LONG;
 
 void poke_b(MEM_ADDR addr, BYTE value);
 void poke_w(MEM_ADDR addr, WORD value);
@@ -37,14 +37,13 @@ BYTE peek_b(MEM_ADDR addr);
 WORD peek_w(MEM_ADDR addr);
 LONG peek_l(MEM_ADDR addr);
 
-
 /*=====>>> window.c <<<=====================================================*/
 
 typedef struct {
-  int  x, y;
-  int  width, height;
-  int  cursor_x, cursor_y;
-  char cursor_char;
+    int x, y;
+    int width, height;
+    int cursor_x, cursor_y;
+    char cursor_char;
 } WINDOW;
 
 extern WINDOW* kernel_window;
@@ -92,18 +91,18 @@ struct _PORT_DEF;
 typedef struct _PORT_DEF* PORT;
 
 typedef struct _PCB {
-    unsigned       magic;
-    unsigned       used;
+    unsigned magic;
+    unsigned used;
     unsigned short priority;
     unsigned short state;
-    MEM_ADDR       esp;
-    PROCESS        param_proc;
-    void*          param_data;
-    PORT           first_port;
-    PROCESS        next_blocked;
-    PROCESS        next;
-    PROCESS        prev;
-    char*          name;
+    MEM_ADDR esp;
+    PROCESS param_proc;
+    void* param_data;
+    PORT first_port;
+    PROCESS next_blocked;
+    PROCESS next;
+    PROCESS prev;
+    char* name;
 } PCB;
 
 
@@ -112,13 +111,13 @@ extern PCB pcb[];
 typedef unsigned PARAM;
 
 /*
-* The name of the boot process.
-*/
+ * The name of the boot process.
+ */
 #define boot_name "Boot process"
 PORT create_process(void (*new_proc) (PROCESS, PARAM),
-		    int prio,
-		    PARAM param,
-		    char *proc_name);
+        int prio,
+        PARAM param,
+        char *proc_name);
 #ifdef XXX
 PROCESS fork();
 #endif
@@ -135,8 +134,8 @@ extern PCB* ready_queue[];
 
 
 PROCESS dispatcher();
-void add_ready_queue (PROCESS proc);
-void remove_ready_queue (PROCESS proc);
+void add_ready_queue(PROCESS proc);
+void remove_ready_queue(PROCESS proc);
 void resign();
 void init_dispatcher();
 
@@ -153,24 +152,24 @@ void init_null_process();
 #define MAGIC_PORT  0x1234abcd
 
 typedef struct _PORT_DEF {
-    unsigned  magic;
-    unsigned  used;              /* Port slot used? */
-    unsigned  open;              /* Port open? */
-    PROCESS   owner;             /* Owner of this port */
-    PROCESS   blocked_list_head; /* First local blocked process */
-    PROCESS   blocked_list_tail; /* Last local blocked process */
-    struct _PORT_DEF *next;            /* Next port */
+    unsigned magic;
+    unsigned used; /* Port slot used? */
+    unsigned open; /* Port open? */
+    PROCESS owner; /* Owner of this port */
+    PROCESS blocked_list_head; /* First local blocked process */
+    PROCESS blocked_list_tail; /* Last local blocked process */
+    struct _PORT_DEF *next; /* Next port */
 } PORT_DEF;
 
 
 PORT create_port();
-PORT create_new_port (PROCESS proc);
-void open_port (PORT port);
-void close_port (PORT port);
-void send (PORT dest_port, void* data);
-void message (PORT dest_port, void* data);
-void* receive (PROCESS* sender);
-void reply (PROCESS sender);
+PORT create_new_port(PROCESS proc);
+void open_port(PORT port);
+void close_port(PORT port);
+void send(PORT dest_port, void* data);
+void message(PORT dest_port, void* data);
+void* receive(PROCESS* sender);
+void reply(PROCESS sender);
 void init_ipc();
 
 
@@ -183,18 +182,15 @@ void init_ipc();
 #define ENABLE_INTR(save) 	asm ("pushl %0" : : "m" (save)); \
 				asm ("popfl");
 
-
-
-typedef struct 
-{
+typedef struct {
     unsigned short offset_0_15;
     unsigned short selector;
     unsigned short dword_count : 5;
-    unsigned short unused      : 3;
-    unsigned short type        : 4;
-    unsigned short dt          : 1;
-    unsigned short dpl         : 2;
-    unsigned short p           : 1;
+    unsigned short unused : 3;
+    unsigned short type : 4;
+    unsigned short dt : 1;
+    unsigned short dpl : 2;
+    unsigned short p : 1;
     unsigned short offset_16_31;
 } IDT;
 
@@ -206,9 +202,9 @@ typedef struct
 
 extern BOOL interrupts_initialized;
 
-void init_idt_entry (int intr_no, void (*isr) (void));
-void wait_for_interrupt (int intr_no);
-void init_interrupts ();
+void init_idt_entry(int intr_no, void (*isr) (void));
+void wait_for_interrupt(int intr_no);
+void init_interrupts();
 
 
 /*=====>>> timer.c <<<===================================================*/
@@ -217,8 +213,7 @@ void init_interrupts ();
 
 extern PORT timer_port;
 
-typedef struct _Timer_Message 
-{
+typedef struct _Timer_Message {
     int num_of_ticks;
 } Timer_Message;
 
@@ -228,8 +223,9 @@ void init_timer();
 
 /*=====>>> inout.c <<<======================================================*/
 
-unsigned char inportb (unsigned short port);
-void outportb (unsigned short port, unsigned char value);
+unsigned char inportb(unsigned short port);
+unsigned short inportw(unsigned short port);
+void outportb(unsigned short port, unsigned char value);
 
 
 /*=====>>> com.c <<<=====================================================*/
@@ -243,11 +239,10 @@ void outportb (unsigned short port, unsigned char value);
 
 extern PORT com_port;
 
-typedef struct _COM_Message 
-{
+typedef struct _COM_Message {
     char* output_buffer;
     char* input_buffer;
-    int   len_input_buffer;
+    int len_input_buffer;
 } COM_Message;
 
 void init_com();
@@ -264,6 +259,21 @@ typedef struct _Keyb_Message {
 } Keyb_Message;
 
 void init_keyb();
+
+/*=====>>> nek2_driver.c <<<====================================================*/
+
+#define NE2K_IRQ	0x6A
+#define NE2K_IOBASE 0x300
+#define NE2K_PORT	0x300
+
+extern PORT ne2k_driver_port;
+
+typedef struct _NE2K_Driver_Message {
+} NE2K_Driver_Message;
+
+void init_ne2k_driver();
+void init_ne2k_test();
+void ne_test_transmit();
 
 /*=====>>> shell.c <<<===================================================*/
 
