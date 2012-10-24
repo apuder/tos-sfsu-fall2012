@@ -8,6 +8,7 @@
  * 
  */
 #include <kernel.h>
+#include "arp.h"
 
 PORT ne2k_driver_port;
 
@@ -396,7 +397,8 @@ void ne_receive(struct ne *ne) {
     int rc;
     int i;
     unsigned short packet_header_length = (unsigned short) sizeof (struct recv_ring_desc);
-
+    ARP __arReq;
+    
     // Set page 1 registers
     outportb(ne->nic_addr + NE_P0_CR, NE_CR_PAGE_1 | NE_CR_RD2 | NE_CR_STA);
 
@@ -416,7 +418,12 @@ void ne_receive(struct ne *ne) {
         p->next = NULL;
         p->len = packet_hdr.count - packet_header_length;
         p->tot_len = p->len;
-
+        
+        if(is_arp_request(p->payload, p->len, &__arReq)){
+            kprintf("YES!!!!!!!!!!");
+        }else{
+            kprintf("NOOOO!!!!!!!!!!");
+        }
         // Get packet from nic and send to upper layer
         if (p == NULL) {
             kprintf("ne_receive: packet dropped\n");
