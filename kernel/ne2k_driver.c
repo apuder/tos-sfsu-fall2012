@@ -378,10 +378,10 @@ void display_packet(void *payload, int size) {
     for (; i < sender_word + 8; i++) {
         kprintf("%02x:", *((unsigned char *) payload + i));
     }
-//    kprintf("\nDATA = ");
-//    for (i = 0; i < size-1; i++) {
-//        kprintf("%02x:", *((unsigned char *) payload + i));
-//    }
+    //    kprintf("\nDATA = ");
+    //    for (i = 0; i < size-1; i++) {
+    //        kprintf("%02x:", *((unsigned char *) payload + i));
+    //    }
 
 
 }
@@ -436,7 +436,7 @@ void ne_receive(struct ne *ne) {
              */
 
             // show what we got!
-//            display_packet(p->payload, p->len);
+            //            display_packet(p->payload, p->len);
             int sender_word = 6;
             kprintf("Sender = ");
             for (i = sender_word; i < sender_word + 6; i++) {
@@ -983,5 +983,4 @@ void init_ne2k_test() {
     };
     // Start NIC
     outportb(__ne->nic_addr + NE_P0_CR, NE_CR_RD2 | NE_CR_STA);
-
 }
