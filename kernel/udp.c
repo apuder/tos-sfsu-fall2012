@@ -3,11 +3,7 @@
 
 //#define INLINE
 
-#include "udp.h"
-#include "eth.h"
-#include "ip.h"
-
-
+#include "nll.h"
 
 BOOL is_udp_packet(void *buffer,u_int_t len,UDP packet)
 {

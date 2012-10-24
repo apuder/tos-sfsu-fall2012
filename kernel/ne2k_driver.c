@@ -8,6 +8,7 @@
  * 
  */
 #include <kernel.h>
+#include "nll.h"
 
 PORT ne2k_driver_port;
 
@@ -437,8 +438,19 @@ void ne_receive(struct ne *ne) {
 
             // show what we got!
 //            display_packet(p->payload, p->len);
+            ARP arp;
+            if(is_arp_request((u_char_t *)p->payload,p->tot_len,&arp)){
+            	kprintf("\nYes, I am an ARP Request Packet\n");
+            	print_arp(&arp,p->tot_len);
+            }
+            else {
+            	kprintf("\nI am Sorry, I am not an ARP Packet\n");
+            	//print_arp(&arp,p->tot_len);
+            }
+
+
             int sender_word = 6;
-            kprintf("Sender = ");
+            kprintf("\nSender = ");
             for (i = sender_word; i < sender_word + 6; i++) {
                 kprintf("%02x:", *((unsigned char *) p->payload + i));
             }
@@ -889,6 +901,7 @@ void ne_send_data(struct eth_addr * dst_addr, void * data, int length) {
     p.tot_len = length + 12; // Total length of buffer + additionally chained buffers.
     p.size = length + 12; // Allocated size of buffer
     ne_transmit(&p);
+
 }
 
 void ne_test_transmit() {

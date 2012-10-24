@@ -1,114 +1,116 @@
 #ifndef _ARP_C
 #define _ARP_C
 
-#define INLINE
+#include "nll.h"
 
-#include "arp.h"
-#include "eth.h"
-#include "ip.h"
-
-
-/*static u_char_t eth_bcast[ETH_ADDR_LEN] =
-{
-        0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF
- };*/
- 
  //! The ARP cache maximum entries.
  #define ARP_TABLE_SIZE   10
  
  //! ARP cache (here are stored all addresses resolutions IP<->MAC).
  static struct
  {
-         //! IP address.
-         u_char_t ip[IP_LEN];
-         //! Ethernet address.
-         u_char_t mac[ETH_ADDR_LEN];
+           u_char_t ip[IP_LEN];
+           u_char_t mac[ETH_ADDR_LEN];
 
 } arp_table[ARP_TABLE_SIZE];
 
 
-
-
 BOOL is_arp_request(void *buffer , u_int_t len, ARP arp_pkt)
 {
-   u_int_t i;
-   char *buf = (char *)(buffer);
-   ETH ethheader = (ETH)(buf);
-     
-  if(ntohs_tos(ethheader->type) != ETHERTYPE_ARP)
-    return FALSE;
-  
-   ARP arpheader = (ARP )(buf + ETH_HEAD_LEN);
+	ETH ethheader;
+   if(is_ethernet_header(&buffer,&ethheader)){
+	   u_char_t *buf = (u_char_t *)(buffer);
+
+	   if(ntohs_tos(ethheader->type) != ETHERTYPE_ARP)
+		   return FALSE;
+	   u_char_t *arpheader = (buf + ETH_HEAD_LEN);
        
-   if(ntohs_tos(arpheader->arp_op) != ARP_REQUEST)
-     return FALSE;
+	  if(ntohs_tos(*((u_int16_t *)(arpheader + 6))) != ARP_REQUEST)
+		   return FALSE;
    
-    arp_pkt->arp_hard_type = ntohs_tos(arpheader->arp_hard_type);
+	   arp_pkt->arp_hard_type = ntohs_tos(*((u_int16_t *)(arpheader)));
   
-    arp_pkt->arp_proto_type = ntohs_tos(arpheader->arp_proto_type);
+	   arp_pkt->arp_proto_type = ntohs_tos(*((u_int16_t *)(arpheader + 2)));
    
-    arp_pkt->arp_hard_size=arpheader->arp_hard_size;
+	   arp_pkt->arp_hard_size = *((u_char_t *)(arpheader + 4));
     
-    arp_pkt->arp_proto_size=arpheader->arp_proto_size;
-    arp_pkt->arp_op = ntohs_tos(arpheader->arp_op);
-    memcpy_tos(arp_pkt->arp_eth_source,arpheader->arp_eth_source,ETH_ADDR_LEN);
-   	memcpy_tos(arp_pkt->arp_ip_source,arpheader->arp_ip_source,IP_LEN);
-    memcpy_tos(arp_pkt->arp_eth_dest, arpheader->arp_eth_dest,ETH_ADDR_LEN);
-   	memcpy_tos(arp_pkt->arp_ip_dest,arpheader->arp_ip_dest,IP_LEN);
-    return TRUE;
- }
+	   arp_pkt->arp_proto_size = *((u_char_t *)(arpheader + 5));
+	   arp_pkt->arp_op = ntohs_tos(*((u_int16_t *)(arpheader + 6)));
+	   memcpy_tos(arp_pkt->arp_eth_source,(u_char_t *)(arpheader + 8),ETH_ADDR_LEN);
+	   memcpy_tos(arp_pkt->arp_ip_source,(u_char_t *)(arpheader + 14),IP_LEN);
+	   memcpy_tos(arp_pkt->arp_eth_dest, (u_char_t *)(arpheader + 18),ETH_ADDR_LEN);
+	   memcpy_tos(arp_pkt->arp_ip_dest,(u_char_t *)(arpheader + 24),IP_LEN);
+	   return TRUE;
+   	   }
+   	   else
+   		   return FALSE;
+ 	 }
 
 
 BOOL is_arp_reply(void *buffer , u_int_t len, ARP arp_pkt)
 {
-   u_int_t i;
-   char *buf = (char *)(buffer);
-   ETH ethheader = (ETH)(buf);
+		ETH ethheader;
+	   if(is_ethernet_header(&buffer,&ethheader)){
+		   u_char_t *buf = (u_char_t *)(buffer);
 
-  if(ntohs_tos(ethheader ->type) != ETHERTYPE_ARP)
-    return FALSE;
-  
-   ARP arpheader = (ARP )(buf + ETH_HEAD_LEN);
-  
-   if(ntohs_tos(arpheader->arp_op) != ARP_REPLY)
-     return FALSE;
-    
-    arp_pkt->arp_hard_type = ntohs_tos(arpheader->arp_hard_type);
-    arp_pkt->arp_proto_type = ntohs_tos(arpheader->arp_proto_type);
-    arp_pkt->arp_hard_size = arpheader->arp_hard_size;
-    arp_pkt->arp_proto_size=arpheader->arp_proto_size;
-    arp_pkt->arp_op = ntohs_tos(arpheader->arp_op);
-    memcpy_tos(arp_pkt->arp_eth_source,arpheader->arp_eth_source,ETH_ADDR_LEN);
-    memcpy_tos(arp_pkt->arp_ip_source,arpheader->arp_ip_source,IP_LEN);
-    memcpy_tos(arp_pkt->arp_eth_dest, arpheader->arp_eth_dest,ETH_ADDR_LEN);
-    memcpy_tos(arp_pkt->arp_ip_dest,arpheader->arp_ip_dest,IP_LEN);
-  
-    arp_add_cache(arp_pkt->arp_ip_source,arp_pkt->arp_eth_source);
-    return TRUE; 
+		   if(ntohs_tos(ethheader->type) != ETHERTYPE_ARP)
+			   return FALSE;
+		   u_char_t *arpheader = (u_char_t *)(buf + ETH_HEAD_LEN);
+
+		   if(ntohs_tos(*((u_int16_t *)(arpheader + 6))) != ARP_REPLY)
+			   return FALSE;
+
+		   arp_pkt->arp_hard_type = ntohs_tos(*((u_int16_t *)(arpheader)));
+
+		   arp_pkt->arp_proto_type = ntohs_tos(*((u_int16_t *)(arpheader + 2)));
+
+		   arp_pkt->arp_hard_size = *((u_char_t *)(arpheader + 4));
+
+		   arp_pkt->arp_proto_size = *((u_char_t *)(arpheader + 5));
+		   arp_pkt->arp_op = ntohs_tos(*((u_int16_t *)(arpheader + 6)));
+		   memcpy_tos(arp_pkt->arp_eth_source,(u_char_t *)(arpheader + 8),ETH_ADDR_LEN);
+		   memcpy_tos(arp_pkt->arp_ip_source,(u_char_t *)(arpheader + 14),IP_LEN);
+		   memcpy_tos(arp_pkt->arp_eth_dest, (u_char_t *)(arpheader + 18),ETH_ADDR_LEN);
+		   memcpy_tos(arp_pkt->arp_ip_dest,(u_char_t *)(arpheader + 24),IP_LEN);
+		   return TRUE;
+	   	   }
+	   	   else
+	   		   return FALSE;
 }
 
+void print_arp(ARP pkt, u_int_t len)
+{
+
+    kprintf("\n###############################################################\n");
+
+    kprintf("\nARP Header\n");
+    kprintf(" |-ARP Packet Total Length   : %u  Bytes(Size of Packet)\n",len);
+    kprintf(" |-ARP Operation             : %s\n",pkt->arp_op == ARP_REQUEST ? "ARP REQUEST" : "ARP REPLY");
+    kprintf(" |-Sender MAC Address        : %02x:%02x:%02x:%02x:%02x:%02x\n",pkt->arp_eth_source[0],pkt->arp_eth_source[1],pkt->arp_eth_source[2],pkt->arp_eth_source[3],pkt->arp_eth_source[4],pkt->arp_eth_source[5]);
+    kprintf(" |-Sender IP Address         : %d.%d.%d.%d\n",pkt->arp_ip_source[0],pkt->arp_ip_source[1], pkt->arp_ip_source[2],pkt->arp_ip_source[3]);
+    kprintf(" |-Target MAC Address        : %02x:%02x:%02x:%02x:%02x:%02x\n",pkt->arp_eth_dest[0],pkt->arp_eth_dest[1],pkt->arp_eth_dest[2],pkt->arp_eth_dest[3],pkt->arp_eth_dest[4],pkt->arp_eth_dest[5]);
+    kprintf(" |-Target IP Address         : %d.%d.%d.%d\n",pkt->arp_ip_dest[0],pkt->arp_ip_dest[1],pkt->arp_ip_dest[2],pkt->arp_ip_dest[3]);
+
+  }
 
  void arp_add_cache(u_char_t *ip, u_char_t *mac)
  {
          
-         u_int_t i;
+        u_int_t i;
 	 
         for(i=0; i<ARP_TABLE_SIZE; i++)
          {
                  if ( memcmp_tos(arp_table[i].ip,ip,IP_LEN) )
                {
-                         // Address already present => refresh cache     //
                          memcpy_tos(arp_table[i].mac, mac, ETH_ADDR_LEN);
                          return;
                  }
 	 }
-        for(i=0; i<ARP_TABLE_SIZE; i++)
+    for(i=0; i<ARP_TABLE_SIZE; i++)
 	{
                  if ( arp_table[i].ip == NULL )
                  {
-                         // Store the address into the ARP table  
-                         for(i=0;i< IP_LEN;i++)
-                        	 	arp_table[i].ip[i] = ip[i];
+                         memcpy_tos(arp_table[i].ip,ip,IP_LEN);
                          memcpy_tos(arp_table[i].mac, mac, ETH_ADDR_LEN);
                          return;
                  }
@@ -118,24 +120,13 @@ BOOL is_arp_reply(void *buffer , u_int_t len, ARP arp_pkt)
  BOOL arp_ip_to_mac(u_char_t *eth_addr, u_char_t *ip)
  {
          u_int_t i;
-                                    //
+
          if (memcmp_tos(ip,get_host_ip(),IP_LEN))
          {
-                 // Maybe we're asking our MAC address (???)             //
+                 // Maybe we're asking our MAC address (???)
                  memcpy_tos(eth_addr, get_host_mac(), ETH_ADDR_LEN);
                  return TRUE;
          }
- 
-         // Check for a broadcast request                                //
-        /* if ( memcmp_tos(ip,get_host_bcast_addr(),IP_LEN) || memcmp_tos(ip, INADDR_BROADCAST,IP_LEN) )
-         {
-                 // Broadcast in the current LAN                         //
-                 memcpy_tos(eth_addr, eth_bcast, ETH_ADDR_LEN);
-                 return TRUE;
-         }*/
-         // --- End of special addresses ---                             //
- 
-         // Search the address into the ARP cache                //
 
          for(i=0; i<ARP_TABLE_SIZE; i++)
         	 if ( memcmp_tos(arp_table[i].ip,ip,IP_LEN))
@@ -149,37 +140,22 @@ BOOL is_arp_reply(void *buffer , u_int_t len, ARP arp_pkt)
           return FALSE;
  }
  
- int send_arp_packet(u_char_t *ip_to, u_char_t *eth_to, u_int16_t arp_op , ARP arp_packet)
- {
-         
+ u_int_t create_arp_packet(u_char_t *ip_to, u_char_t *eth_to,u_char_t *host_ip,u_char_t *host_mac,u_int16_t arp_op , u_char_t *packet)
+  {
 
-	 	 u_char_t *mac_addr;
-	 	 u_char_t *host_ip;
+          *((u_int16_t *)packet) = htons_tos(ARPHRD_ETHER);
+          *((u_int16_t *)(packet + 2)) = htons_tos(ETHERTYPE_IP);
+          *(packet + 4) = ETH_ADDR_LEN;
+          *(packet + 5) = IP_LEN;
+          *((u_int16_t *)(packet + 6)) = htons_tos(arp_op);
+          memcpy_tos((packet + 8), host_mac, ETH_ADDR_LEN);
+          memcpy_tos((packet + 14),host_ip,IP_LEN);
+          memcpy_tos((packet + 18), eth_to, ETH_ADDR_LEN);
+          memcpy_tos((packet + 24), ip_to,IP_LEN);
 
+          return (sizeof(struct _arp));
+  }
  
-         // Create the ARP header                                        
-         arp_packet->arp_hard_type = htons_tos(ARPHRD_ETHER);
-
-         arp_packet->arp_proto_type = htons_tos(ETHERTYPE_IP);
-         arp_packet->arp_hard_size = ETH_ADDR_LEN;
-         arp_packet->arp_proto_size = IP_LEN;
-         arp_packet->arp_op = htons_tos(arp_op);
-                           
-         mac_addr = get_host_mac();
-         host_ip = get_host_ip();
-
-         memcpy_tos(arp_packet->arp_eth_source, mac_addr, ETH_ADDR_LEN);
-         memcpy_tos(arp_packet->arp_ip_source,host_ip,IP_LEN);
- 
-                            
-         memcpy_tos(arp_packet->arp_eth_dest, eth_to, ETH_ADDR_LEN);
-                          
-         memcpy_tos(arp_packet->arp_ip_dest, ip_to,IP_LEN);
-
-         return 28;
- }
- 
-
 #endif
 
  
