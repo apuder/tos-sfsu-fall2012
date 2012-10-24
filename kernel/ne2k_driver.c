@@ -370,21 +370,27 @@ void ne_get_packet(struct ne *ne, unsigned short src, char *dst, unsigned short 
 
 void display_packet(void *payload, int size) {
     int i;
-    int sender_word = 6;
-    kprintf("Sender = ");
-    for (i = sender_word; i < sender_word + 6; i++) {
+    kprintf("DST=%02x:%02x:%02x:%02x:%02x:%02x",
+            *((unsigned char *) payload + 0),
+            *((unsigned char *) payload + 1),
+            *((unsigned char *) payload + 2),
+            *((unsigned char *) payload + 3),
+            *((unsigned char *) payload + 4),
+            *((unsigned char *) payload + 5));
+    kprintf(" SRC=%02x:%02x:%02x:%02x:%02x:%02x",
+            *((unsigned char *) payload + 6),
+            *((unsigned char *) payload + 7),
+            *((unsigned char *) payload + 8),
+            *((unsigned char *) payload + 9),
+            *((unsigned char *) payload + 10),
+            *((unsigned char *) payload + 11));
+    kprintf(" TYPE=%02x:%02x\n",
+            *((unsigned char *) payload + 12),
+            *((unsigned char *) payload + 13));
+    kprintf("DATA=");
+    for (i = 14; i < size; i++)
         kprintf("%02x:", *((unsigned char *) payload + i));
-    }
-    kprintf("\nPacketType = ");
-    for (; i < sender_word + 8; i++) {
-        kprintf("%02x:", *((unsigned char *) payload + i));
-    }
-    //    kprintf("\nDATA = ");
-    //    for (i = 0; i < size-1; i++) {
-    //        kprintf("%02x:", *((unsigned char *) payload + i));
-    //    }
-
-
+    kprintf("\n");
 }
 
 void ne_receive(struct ne *ne) {
@@ -398,7 +404,7 @@ void ne_receive(struct ne *ne) {
     int i;
     unsigned short packet_header_length = (unsigned short) sizeof (struct recv_ring_desc);
     ARP __arReq;
-    
+
     // Set page 1 registers
     outportb(ne->nic_addr + NE_P0_CR, NE_CR_PAGE_1 | NE_CR_RD2 | NE_CR_STA);
 
@@ -413,58 +419,40 @@ void ne_receive(struct ne *ne) {
         ne_readmem(ne, packet_ptr, &packet_hdr, packet_header_length);
 
         // Allocate packet buffer
-        kprintf("header:0x%02X next:0x%02X.\n", packet_hdr.rsr, packet_hdr.next_pkt);
         p = &data_buffer;
         p->next = NULL;
         p->len = packet_hdr.count - packet_header_length;
         p->tot_len = p->len;
-        
-        if(is_arp_request(p->payload, p->len, &__arReq)){
+
+        kprintf("header:0x%02X next:0x%02X len:%d\n", packet_hdr.rsr, packet_hdr.next_pkt, p->tot_len);
+
+        if (is_arp_request(p->payload, p->len, &__arReq)) {
             kprintf("YES!!!!!!!!!!");
-        }else{
+        } else {
             kprintf("NOOOO!!!!!!!!!!");
         }
+
         // Get packet from nic and send to upper layer
-        if (p == NULL) {
-            kprintf("ne_receive: packet dropped\n");
+        packet_ptr += 4; // sizeof (struct recv_ring_desc);
+        ne_readmem(ne, packet_ptr, p->payload, (unsigned short) p->len);
+        // ne_get_packet(ne, packet_ptr, p->payload, (unsigned short) p->len);
 
-        } else {
+        /*
+        for (q = p; q != NULL; q = q->next) {
+            ne_get_packet(ne, packet_ptr, q->payload, (unsigned short) q->len);
+            packet_ptr += q->len;
+        }
+         */
 
-            packet_ptr += 4; //sizeof (struct recv_ring_desc);
+        // show what we got
+        display_packet(p->payload, p->len);
 
-            ne_readmem(ne, packet_ptr, p->payload, (unsigned short) p->len);
-            // ne_get_packet(ne, packet_ptr, p->payload, (unsigned short) p->len);
-
-            /*
-            for (q = p; q != NULL; q = q->next) {
-                ne_get_packet(ne, packet_ptr, q->payload, (unsigned short) q->len);
-                packet_ptr += q->len;
-            }
-             */
-
-            // show what we got!
-            //            display_packet(p->payload, p->len);
-            int sender_word = 6;
-            kprintf("Sender = ");
-            for (i = sender_word; i < sender_word + 6; i++) {
-                kprintf("%02x:", *((unsigned char *) p->payload + i));
-            }
-            kprintf("\nPacketType = ");
-            for (; i < sender_word + 8; i++) {
-                kprintf("%02x:", *((unsigned char *) p->payload + i));
-            }
-            kprintf("\nDATA = ");
-            for (i = 0; i < p->len; i++) {
-                kprintf("%02x:", *((unsigned char *) p->payload + i));
-            }
-
-            kprintf(", %d bytes\n", packet_hdr.count);
-            // rc = dev_receive(ne->devno, p);
-            rc = 0;
-            if (rc < 0) {
-                kprintf("ne_receive: error %d processing packet\n", rc);
-                // pbuf_free(p);
-            }
+        kprintf(", %d bytes\n", packet_hdr.count);
+        // rc = dev_receive(ne->devno, p);
+        rc = 0;
+        if (rc < 0) {
+            kprintf("ne_receive: error %d processing packet\n", rc);
+            // pbuf_free(p);
         }
 
         // Update next packet pointer
