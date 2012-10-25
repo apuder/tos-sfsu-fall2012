@@ -8,7 +8,7 @@
  * 
  */
 #include <kernel.h>
-#include "arp.h"
+#include <arp.h>
 
 PORT ne2k_driver_port;
 
@@ -116,6 +116,7 @@ typedef unsigned short gid_t;
 #define NE_ISR_CNT      0x20           // Counter Overflow
 #define NE_ISR_RDC      0x40           // Remote Data Complete
 #define NE_ISR_RST      0x80           // Reset status
+#define NE_ISR_ALL      0xFF           // All of them
 
 // Interrupt Mask Register (IMR)
 #define NE_IMR_PRXE     0x01           // Packet Received Interrupt Enable
@@ -300,11 +301,11 @@ static void ne_readmem(struct ne *ne, unsigned short src, char *dst, unsigned sh
     // Abort any remote DMA already in progress
     outportb(ne->nic_addr + NE_P0_CR, NE_CR_RD2 | NE_CR_STA);
 
-    // Setup DMA byte count
+    // Setup DMA byte count (set remote byte count)
     outportb(ne->nic_addr + NE_P0_RBCR0, (unsigned char) len);
     outportb(ne->nic_addr + NE_P0_RBCR1, (unsigned char) (len >> 8));
 
-    // Setup NIC memory source address
+    // Setup NIC memory source address (set remote address)
     outportb(ne->nic_addr + NE_P0_RSAR0, (unsigned char) src);
     outportb(ne->nic_addr + NE_P0_RSAR1, (unsigned char) (src >> 8));
 
@@ -455,12 +456,11 @@ void ne_receive(struct ne *ne) {
             // pbuf_free(p);
         }
 
-        // Update next packet pointer
-        ne->next_pkt = packet_hdr.next_pkt;
-
         // Set page 0 registers
         outportb(ne->nic_addr + NE_P0_CR, NE_CR_PAGE_0 | NE_CR_RD2 | NE_CR_STA);
 
+        // Update next packet pointer
+        ne->next_pkt = packet_hdr.next_pkt;
         // Update boundary pointer
         bndry = ne->next_pkt - 1;
         if (bndry < ne->rx_page_start) {
@@ -468,13 +468,13 @@ void ne_receive(struct ne *ne) {
         }
 
         // Release the buffer by increasing the boundary pointer.
-        // outportb(ne->nic_addr + NE_P0_BNRY, bndry);
-        outportb(ne->nic_addr + NE_P0_BNRY, packet_hdr.next_pkt);
+        outportb(ne->nic_addr + NE_P0_BNRY, bndry);
+        //outportb(ne->nic_addr + NE_P0_BNRY, packet_hdr.next_pkt);
 
         kprintf("start:0x%02x stop:0x%02x next:0x%02x bndry:0x%02x\n", ne->rx_page_start, ne->rx_page_stop, ne->next_pkt, bndry);
 
         // Set page 1 registers
-        // outportb(ne->nic_addr + NE_P0_CR, NE_CR_PAGE_1 | NE_CR_RD2 | NE_CR_STA);
+        outportb(ne->nic_addr + NE_P0_CR, NE_CR_PAGE_1 | NE_CR_RD2 | NE_CR_STA);
     }
     ne_setup(__ne);
 }
@@ -808,10 +808,12 @@ int ne_setup(struct ne *ne) {
      * Individual bits are cleared by writing a "1" into the corresponding bit. 
      * It must be cleared after power up. 
      */
-    outportb(ne->nic_addr + NE_P0_ISR, 0xFF); // ISR
+    outportb(ne->nic_addr + NE_P0_ISR, NE_ISR_ALL);
 
     // #define BOB_IMR 0x1b (enable overflow interrupt)
-    outportb(ne->nic_addr + NE_P0_IMR, 0x1b); // IMR
+    // Enable the following interrupts: receive/transmit complete, transmit error
+    outportb(ne->nic_addr + NE_P0_IMR, NE_IMR_PRXE | NE_IMR_PTXE | NE_IMR_TXEE | NE_IMR_OVWE); // 0x1B
+
     outportb(ne->nic_addr + 0x0D, 0x00); // TMR
 
     // Create packet device
