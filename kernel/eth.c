@@ -34,33 +34,16 @@ BOOL is_ethernet_header(void *buffer,ETH ether)
 
 u_int_t send_eth_packet(u_char_t *to, u_char_t *host, const void *data, u_int_t len, u_int16_t type,u_char_t *packet)
 {
-        int i;
 		u_int_t length;
-		//u_char_t *dta = (u_char_t *)data;
-
 		length = MIN(len, ETH_MAX_TRANSFER_UNIT);
-         //mac_addr = get_host_mac();
-
-         memcpy_tos(packet, to, ETH_ADDR_LEN);
-         memcpy_tos((packet + ETH_ADDR_LEN), host, ETH_ADDR_LEN);
-         //memcpy_tos((packet + (2 * ETH_ADDR_LEN)), type, sizeof(u_int16_t));
-
-         *((u_int16_t *)(packet + (2 * ETH_ADDR_LEN))) = htons_tos(type);
-
-         // Copy the data into the packet
+        memcpy_tos(packet, to, ETH_ADDR_LEN);
+        memcpy_tos((packet + ETH_ADDR_LEN), host, ETH_ADDR_LEN);
+        *((u_int16_t *)(packet + (2 * ETH_ADDR_LEN))) = htons_tos(type);
          memcpy_tos((packet + ETH_HEAD_LEN), data, len);
-
-         //for (i=0; i<len; i++)
-           //        printf("%02x:", dta[i]);
-         //printf("\n");
-         // Adjust the packet length including the size of the header
          length += ETH_HEAD_LEN;
-
-
          while (length < ETH_MIN_LEN)
                  packet[length++] = '\0';
-
          return length;
-}
+	}
 
 #endif
