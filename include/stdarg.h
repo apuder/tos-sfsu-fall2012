@@ -2,8 +2,9 @@
 #ifndef __STDARG_H__
 #define __STDARG_H__
 
-
+//#ifndef LINUX
 typedef char *va_list;
+//#endif
 
 /* Amount of space required in an argument list for an arg of type TYPE.
    TYPE may alternatively be an expression whose type is used.  */

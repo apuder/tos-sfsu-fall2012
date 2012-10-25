@@ -3,14 +3,10 @@
 
 //#define INLINE
 
-#include "ip.h"
-#include "eth.h"
-
+#include "nll.h"
 
 u_char_t host_ip[4];
 u_char_t host_mask[4];
-
-
 
 void set_host_ip_net(u_char_t *ip, u_char_t *netmask)
 {
@@ -27,30 +23,6 @@ void set_host_ip_net(u_char_t *ip, u_char_t *netmask)
   {
     return host_mask;
   }
-  /*u_char_t *get_host_bcast_addr()
-  {
-    return (~host_mask |(host_ip & host_mask));
-  }*/
- 
-/*
-IP read_ip_packet(void *buffer,u_int_t len)
-{
-   IP pd;
-   char *buf = (char *)(buffer);
-   ETH ethheader = (ETH)(buf);
-  
-  if(ntohs_tos(ethheader ->type) != ETHERTYPE_IP)
-    return NULL;
-  
-   IP ipheader = (IP )(buf + ETH_HEAD_LEN);
-  
-  if((ipheader->ip_hdr_len *4) < IP_HEAD_MIN_LEN )
-    return NULL;
-   
-    pd = ipheader;
-   
-    return pd;
- }*/
 
   BOOL is_ip_packet(void *buffer, u_int_t len, IP ip_pkt)
   {

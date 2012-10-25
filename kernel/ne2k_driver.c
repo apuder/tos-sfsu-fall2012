@@ -8,7 +8,7 @@
  * 
  */
 #include <kernel.h>
-#include <arp.h>
+#include "nll.h"
 
 PORT ne2k_driver_port;
 
@@ -886,6 +886,7 @@ void ne_send_data(struct eth_addr * dst_addr, void * data, int length) {
     p.tot_len = length + 12; // Total length of buffer + additionally chained buffers.
     p.size = length + 12; // Allocated size of buffer
     ne_transmit(&p);
+
 }
 
 void ne_test_transmit() {

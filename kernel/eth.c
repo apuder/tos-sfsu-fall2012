@@ -1,38 +1,31 @@
 #ifndef _ETH_C
 #define _ETH_C
 
-//#define INLINE
+#define INLINE
 
-#include "eth.h"
+#include "nll.h"
 
+u_char_t host_mac[ETH_ADDR_LEN];
 
-u_char_t host_mac[6];
+u_char_t eth_bcast[ETH_ADDR_LEN] = { 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF };
 
 void set_host_mac(u_char_t *mac)
-{
-  memcpy_tos(host_mac, mac,ETH_ADDR_LEN);
-}
+	{
+	  memcpy_tos(host_mac, mac,ETH_ADDR_LEN);
+	}
+
 u_char_t *get_host_mac()
-{
-  return host_mac;
-}
+	{
+		return host_mac;
+	}
 
 BOOL is_ethernet_header(void *buffer,ETH ether)
 {
-
-	   char *buf = (char *)(buffer);
-	   ETH ethheader = (ETH)(buf);
-
-	   memcpy_tos(ether->dst , ethheader->dst,ETH_ADDR_LEN);
-	   //printf("I am here\n");
-	   memcpy_tos(ether->src , ethheader->src + ETH_ADDR_LEN,ETH_ADDR_LEN);
-
-	   //ether->type = *((u_int16_t *)(buf + 2*ETH_ADDR_LEN));
-	   ether->type = ethheader->type;
-	   //printf("I am here\n");
-	   //printf("   |-Operation                 : %x\n",ntohs_tos(ether->type));
-
-	   return TRUE;
+	u_char_t *buff = (u_char_t *)(buffer);
+	memcpy_tos(ether->dst ,buff,ETH_ADDR_LEN);
+	memcpy_tos(ether->src , (buff + ETH_ADDR_LEN),ETH_ADDR_LEN);
+	ether->type = *((u_int16_t *)(buff + 2*ETH_ADDR_LEN));
+	return TRUE;
  }
 
 int send_eth_packet(u_char_t *to, const void *data, u_int_t len, u_int16_t type,u_char_t *packet)
