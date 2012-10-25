@@ -81,6 +81,18 @@ BOOL is_arp_reply(void *buffer , u_int_t len, ARP arp_pkt)
 	   		   return FALSE;
 }
 
+void print_arp(ARP pkt, u_int_t len)
+
+{
+	kprintf("\n###############################################################\n");
+	kprintf("\nARP Header\n");
+	kprintf(" |-ARP Packet Total Length   : %u  Bytes(Size of Packet)\n",len);
+	kprintf(" |-ARP Operation             : %s\n",pkt->arp_op == ARP_REQUEST ? "ARP REQUEST" : "ARP REPLY");
+	kprintf(" |-Sender MAC Address        : %02x:%02x:%02x:%02x:%02x:%02x\n",pkt->arp_eth_source[0],pkt->arp_eth_source[1],pkt->arp_eth_source[2],pkt->arp_eth_source[3],pkt->arp_eth_source[4],pkt->arp_eth_source[5]);
+	kprintf(" |-Sender IP Address         : %d.%d.%d.%d\n",pkt->arp_ip_source[0],pkt->arp_ip_source[1], pkt->arp_ip_source[2],pkt->arp_ip_source[3]);
+	kprintf(" |-Target MAC Address        : %02x:%02x:%02x:%02x:%02x:%02x\n",pkt->arp_eth_dest[0],pkt->arp_eth_dest[1],pkt->arp_eth_dest[2],pkt->arp_eth_dest[3],pkt->arp_eth_dest[4],pkt->arp_eth_dest[5]);
+	kprintf(" |-Target IP Address         : %d.%d.%d.%d\n",pkt->arp_ip_dest[0],pkt->arp_ip_dest[1],pkt->arp_ip_dest[2],pkt->arp_ip_dest[3]);
+}
 
  void arp_add_cache(u_char_t *ip, u_char_t *mac)
  {
