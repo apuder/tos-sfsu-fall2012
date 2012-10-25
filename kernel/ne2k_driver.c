@@ -369,7 +369,7 @@ void ne_get_packet(struct ne *ne, unsigned short src, char *dst, unsigned short 
     ne_readmem(ne, src, dst, len);
 }
 
-void display_packet(void *payload, int size) {
+static void display_packet(void *payload, int size) {
     int i;
     kprintf("DST=%02x:%02x:%02x:%02x:%02x:%02x",
             *((unsigned char *) payload + 0),
@@ -388,7 +388,7 @@ void display_packet(void *payload, int size) {
     kprintf(" TYPE=%02x:%02x\n",
             *((unsigned char *) payload + 12),
             *((unsigned char *) payload + 13));
-    kprintf("DATA=");
+    return;
     for (i = 14; i < size; i++)
         kprintf("%02x:", *((unsigned char *) payload + i));
     kprintf("\n");
@@ -445,9 +445,6 @@ void ne_receive(struct ne *ne) {
         }
          */
 
-        // show what we got
-        display_packet(p->payload, p->len);
-
         kprintf(", %d bytes\n", packet_hdr.count);
         // rc = dev_receive(ne->devno, p);
         rc = 0;
@@ -468,8 +465,8 @@ void ne_receive(struct ne *ne) {
         }
 
         // Release the buffer by increasing the boundary pointer.
-        outportb(ne->nic_addr + NE_P0_BNRY, bndry);
-        //outportb(ne->nic_addr + NE_P0_BNRY, packet_hdr.next_pkt);
+        // outportb(ne->nic_addr + NE_P0_BNRY, bndry);
+        outportb(ne->nic_addr + NE_P0_BNRY, packet_hdr.next_pkt);
 
         kprintf("start:0x%02x stop:0x%02x next:0x%02x bndry:0x%02x\n", ne->rx_page_start, ne->rx_page_stop, ne->next_pkt, bndry);
 
@@ -477,6 +474,9 @@ void ne_receive(struct ne *ne) {
         outportb(ne->nic_addr + NE_P0_CR, NE_CR_PAGE_1 | NE_CR_RD2 | NE_CR_STA);
     }
     ne_setup(__ne);
+
+    // show what we got
+    display_packet(p->payload, p->len);
 }
 
 /*
@@ -890,38 +890,50 @@ void ne_send_data(struct eth_addr * dst_addr, void * data, int length) {
 }
 
 void ne_test_transmit() {
+    kprintf("ne_test: Trying to send a packet...\n");
+    int len = 42;
+    struct eth_addr dst_mac = {0xFE, 0xFA, 0xDE, 0xAD, 0xBE, 0xEF};
+    char data[42] = {
+        // type (ARP)
+        0x08, 0x06,
+        // padding
+        0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+        0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+        0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+        0, 0, 0, 0, 0, 0, 0, 0, 0, 0
+    };
+    ne_send_ethernet(dst_mac, data, len);
+}
+
+void ne_send_ethernet(struct eth_addr dst, char * data, int len) {
     if (initialized != 1) {
-        kprintf("test failed: ne2k has not been initialized\n");
+        kprintf("sorry, ne2k has not been initialized\n");
         return;
     }
 
-    char __data__[] = {
-        // destination
-        // 0xD1, 0xE6, 0xAA, 0xDE, 0xAD, 0xBE,
-        0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF,
-
-        // source
+    char _hdr_data[] = {
+        // destination MAC address
+        dst.addr[0], dst.addr[1], dst.addr[2],
+        dst.addr[3], dst.addr[4], dst.addr[5],
+        // source MAC address
         __ne->hwaddr.addr[0], __ne->hwaddr.addr[1], __ne->hwaddr.addr[2],
         __ne->hwaddr.addr[3], __ne->hwaddr.addr[4], __ne->hwaddr.addr[5],
-
-        // type (ARP)
-        0x08, 0x06,
-
-        // padding
-        0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-        0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-        0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-        0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0
     };
 
-    pbuf p;
-    p.next = NULL;
-    p.payload = &__data__;
-    p.len = 42; // Length of this buffer.
-    p.tot_len = 42; //64;  // Total length of buffer + additionally chained buffers.
-    p.size = (sizeof (unsigned int)); // Allocated size of buffer
-    kprintf("ne_test: Trying to send a packet...\n");
-    ne_transmit(&p);
+    pbuf header_buffer, data_buffer;
+
+    data_buffer.next = NULL;
+    data_buffer.payload = &data;
+    data_buffer.len = len;
+    data_buffer.tot_len = len;
+
+    header_buffer.next = &data_buffer;
+    header_buffer.payload = &_hdr_data;
+    header_buffer.len = 12; // Length of this buffer.
+    header_buffer.tot_len = header_buffer.len + data_buffer.tot_len; // Total length of buffer + additionally chained buffers.
+    header_buffer.size = (sizeof (unsigned int)); // Allocated size of buffer
+
+    ne_transmit(&header_buffer);
 }
 
 /*-------------------------------------------------------------------*\
@@ -951,34 +963,6 @@ void init_ne2k_test() {
         kprintf("Error :(\n");
     }
 
-    unsigned char data[64] = {
-        // (1) destination
-        0x7A, 0xA4, 0x40, 0x64, 0xFC, 0x92,
-
-        // (2) source MAC address
-        __ne->hwaddr.addr[0], __ne->hwaddr.addr[1], __ne->hwaddr.addr[2],
-        __ne->hwaddr.addr[3], __ne->hwaddr.addr[4], __ne->hwaddr.addr[5],
-
-        // (3) packet type
-        // ip packet: 0x08, 0x00,
-        // arp packet: 0x08, 0x06,
-
-        // (4) ???
-
-        // frame length: 0x00, 0x00,
-
-        // data
-        // 0x00,
-
-        // padding
-        0xAA, 2, 3, 4, 5, 6, 7, 8, 9, 10,
-        11, 12, 13, 14, 15, 16, 17, 18, 19, 20,
-        21, 22, 23, 24, 25, 26, 27, 28, 29, 30,
-        31, 32, 33, 34, 35, 36, 37, 38, 39, 40,
-        41, 42, 43, 44, 45, 46,
-        // crc
-        0, 1, 2, 3
-    };
     // Start NIC
     outportb(__ne->nic_addr + NE_P0_CR, NE_CR_RD2 | NE_CR_STA);
 }
