@@ -275,7 +275,7 @@ void print_ethernet_header(ETH ether,u_int_t len);
  void arp_add_cache(u_char_t *ip, u_char_t *mac);
  BOOL arp_ip_to_mac(u_char_t *eth_addr, u_char_t *ip_addr);
  u_int_t create_arp_packet(u_char_t *ip_to, u_char_t *eth_to,u_char_t *host_ip, \
-		 u_char_t *host_mac,u_int16_t arp_op , u_char_t *packet);
+		 u_char_t *host_mac,u_int16_t arp_op , ARP packet);
  void print_arp(ARP pkt, u_int_t len);
 
  /*************************** UDP includes *********************/
