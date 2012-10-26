@@ -779,7 +779,7 @@ void ne_test_transmit() {
     u_char_t src_ip[4] = {192, 168, 1, 2};
     u_char_t dst_mac[6] = {0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF};
     u_char_t src_mac[6] = {
-        __ne->hwaddr.addr[0], __ne->hwaddr.addr[1], __ne->hwaddr.addr[3],
+        __ne->hwaddr.addr[0], __ne->hwaddr.addr[1], __ne->hwaddr.addr[2],
         __ne->hwaddr.addr[3], __ne->hwaddr.addr[4], __ne->hwaddr.addr[5]
     };
     unsigned int arp_len = create_arp_packet(dst_ip, dst_mac, src_ip, src_mac, ARP_REQUEST, &arp_pkt);
