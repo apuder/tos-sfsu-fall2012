@@ -3,9 +3,9 @@
 
 #define INLINE
 
-#include "nll.h"
+#include <nll.h>
 
-#ifdef LINUX
+#ifdef NO_TOS
 	#include <stdio.h>
 #endif
 

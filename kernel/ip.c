@@ -3,7 +3,7 @@
 
 //#define INLINE
 
-#include "nll.h"
+#include <nll.h>
 
 u_char_t host_ip[4];
 u_char_t host_mask[4];

@@ -1,7 +1,8 @@
+
 # Options for the x86 cross compiler
 CC = gcc
-#CC_OPT = -Wall 
-#-I../../include -fno-leading-underscore 
+CC_OPT = -Wall -I../../include 
+#-fno-leading-underscore 
 #-nostdinc -I../../include 
 #-fomit-frame-pointer -fno-defer-pop -fno-leading-underscore -mpreferred-stack-boundary=2 -O -m32 -march=i386 -f$
 
@@ -30,16 +31,16 @@ LIBS = -lpcap
 
 OBJS = linux_ver.o ../../kernel/ip.o ../../kernel/udp.o ../../kernel/arp.o ../../kernel/eth.o
 SRC = linux_ver.c ../../kernel/ip.c ../../kernel/udp.c ../../kernel/arp.c ../../kernel/eth.c
-DEPS = ../../include/nll.h
+#DEPS = ../../include/nll.h
 
 #%.o: %.s
 #	$(CC) $(CC_OPT) -o $@ -c $<
 
-$(OBJS): $(SRC) $(DEPS)
-	$(CC) -I../../include -DNO_TOS -c -o $@ $<
+$(OBJS): $(SRC) #$(DEPS)
+	$(CC) $(CC_OPT) -DNO_TOS -c -o $@ $<
 
-nll: linux_ver.o
-	$(CC) $(OBJS) -o $(LIBS)
+nll: $(OBJS)
+	$(CC) -o $(OBJS)  $(LIBS)
 
 clean :
 	rm -f *~ *.o *.bak *.img

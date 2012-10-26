@@ -1,9 +1,9 @@
 #ifndef _ARP_C
 #define _ARP_C
 
-#include "nll.h"
-#ifdef LINUX
-#include <stdio.h>
+#include <nll.h>
+#ifdef NO_TOS
+	#include <stdio.h>
 #endif
 
 //! The ARP cache maximum entries.
