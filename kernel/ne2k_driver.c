@@ -276,9 +276,6 @@ struct ne {
 struct netstats *netstats;
 
 static void ne_readmem(struct ne *ne, unsigned short src, char *dst, unsigned short len) {
-    // Word align length
-    // i.e., if it's odd make it even, because we are sending words not bytes
-    if (len & 1) len++;
 
     // Abort any remote DMA already in progress
     outportb(ne->nic_addr + NE_P0_CR, NE_CR_RD2 | NE_CR_STA);
@@ -302,7 +299,7 @@ static void ne_readmem(struct ne *ne, unsigned short src, char *dst, unsigned sh
 }
 
 /**
- * Reset the card
+ * Reset the ethernet card
  */
 static void ne_reset(struct ne *ne) {
     unsigned char byte;
@@ -312,18 +309,11 @@ static void ne_reset(struct ne *ne) {
 }
 
 static int ne_probe(struct ne *ne) {
-    unsigned char byte;
-
     // Reset the ethernet card
-    byte = inportb(ne->asic_addr + NE_NOVELL_RESET);
-    outportb(ne->asic_addr + NE_NOVELL_RESET, byte);
-    outportb(ne->nic_addr + NE_P0_CR, NE_CR_RD2 | NE_CR_STP);
-
-    // msleep(100);
-    // sleep(100);
+    ne_reset(ne);
 
     // Test for a generic DP8390 NIC
-    byte = inportb(ne->nic_addr + NE_P0_CR);
+    unsigned char byte = inportb(ne->nic_addr + NE_P0_CR);
     byte &= NE_CR_RD2 | NE_CR_TXP | NE_CR_STA | NE_CR_STP;
     if (byte != (NE_CR_RD2 | NE_CR_STP))
         return 0;
@@ -367,11 +357,13 @@ static void display_packet(void *payload, int size) {
     kprintf(" TYPE=%02x:%02x\n",
             *((unsigned char *) payload + 12),
             *((unsigned char *) payload + 13));
-    return;
     for (i = 14; i < size; i++)
         kprintf("%02x:", *((unsigned char *) payload + i));
     kprintf("\n");
 }
+
+unsigned char NE_RX_BUFFER[256];
+unsigned char NE_TX_BUFFER[256];
 
 void ne_receive(struct ne *ne) {
     struct recv_ring_desc packet_hdr;
@@ -381,14 +373,10 @@ void ne_receive(struct ne *ne) {
     pbuf *p, *q;
     pbuf data_buffer;
     int rc;
-    int i;
-    unsigned short packet_header_length = (unsigned short) sizeof (struct recv_ring_desc);
-    ARP __arReq;
+    unsigned short packet_header_length = 4; // (unsigned short) sizeof (struct recv_ring_desc);
 
     // Set page 1 registers
     outportb(ne->nic_addr + NE_P0_CR, NE_CR_PAGE_1 | NE_CR_RD2 | NE_CR_STA);
-
-    kprintf("Receiving packet:0x%X ... 0x%X\n", inportb(ne->nic_addr + NE_P1_CURR), ne->next_pkt);
 
     if (ne->next_pkt != inportb(ne->nic_addr + NE_P1_CURR)) {
         // Get pointer to buffer header structure
@@ -403,14 +391,9 @@ void ne_receive(struct ne *ne) {
         p->next = NULL;
         p->len = packet_hdr.count - packet_header_length;
         p->tot_len = p->len;
+        p->payload = &NE_RX_BUFFER;
 
-        kprintf("header:0x%02X next:0x%02X len:%d\n", packet_hdr.rsr, packet_hdr.next_pkt, p->tot_len);
-
-        if (is_arp_request(p->payload, p->len, &__arReq)) {
-            kprintf("YES!!!!!!!!!!");
-        } else {
-            kprintf("NOOOO!!!!!!!!!!");
-        }
+        // kprintf("header:0x%02X next:0x%02X len:%d\n", packet_hdr.rsr, packet_hdr.next_pkt, p->tot_len);
 
         // Get packet from nic and send to upper layer
         packet_ptr += 4; // sizeof (struct recv_ring_desc);
