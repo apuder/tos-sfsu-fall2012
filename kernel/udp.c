@@ -1,7 +1,6 @@
 #ifndef _UDP_C
 #define _UDP_C
 
-//#define INLINE
 
 #include <nll.h>
 

@@ -1,28 +1,7 @@
 #ifndef _IP_C
 #define _IP_C
 
-//#define INLINE
-
 #include <nll.h>
-
-u_char_t host_ip[4];
-u_char_t host_mask[4];
-
-void set_host_ip_net(u_char_t *ip, u_char_t *netmask)
-{
-  
-  memcpy_tos(host_ip,ip,IP_LEN);
-  memcpy_tos(host_mask, netmask,IP_LEN);
- }
-
-  u_char_t *get_host_ip()
-  {
-    return host_ip;
-  }
-  u_char_t *get_host_netmask()
-  {
-    return host_mask;
-  }
 
   BOOL is_ip_packet(void *buffer, u_int_t len, IP ip_pkt)
   {
@@ -98,7 +77,7 @@ void set_host_ip_net(u_char_t *ip, u_char_t *netmask)
     return(answer);
  }
  
- int inet_aton_tos(u_char_t *dot_ip, u_char_t *net_ip)
+ /*int inet_aton_tos(u_char_t *dot_ip, u_char_t *net_ip)
   {
           //static const in_addr_t max[4] = { 0xFFFFFFFF, 0xFFFFFF, 0xFFFF, 0xFF };
           //u_int_t ;
@@ -152,7 +131,7 @@ void set_host_ip_net(u_char_t *ip, u_char_t *netmask)
                   return -1;
           }
  return 0;
-  }
+  }*/
 
 
 #endif

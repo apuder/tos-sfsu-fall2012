@@ -1,6 +1,5 @@
 
 #ifdef NO_TOS
-	//#include <stdarg.h>
 	#include <pcap.h>
 	#include <stdio.h>
 	#include <stdlib.h> // for exit()
@@ -12,8 +11,6 @@
 
 #include <nll.h>
 
-
-//#define DEBUG
 
 void got_packet(u_char *args, const struct pcap_pkthdr *header, const u_char *packet);
 void printPacket(u_int_t len, const u_char_t * packet);
@@ -34,7 +31,9 @@ u_char_t *smask[4];
 u_char_t dest_ip[4] = 	{192,168,1,254};
 u_char_t h_ip[4] = 	{192,168,1,79};
 
-u_char_t h_mac[ETH_ADDR_LEN]={0xbc,0xae,0x82,0x69,0xeb,0x28};
+u_char_t host_mac[ETH_ADDR_LEN]={0xBC,0xAE,0x82,0x69,0xEB,0x28};
+
+u_char_t eth_bcast[ETH_ADDR_LEN] = { 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF };
 
 int main()
 {
@@ -199,7 +198,8 @@ void print_ip_header(IP ip_pkt, u_int_t packet_len)
     printf("   |-Destination IP    : %u.%u.%u.%u\n" , ip_pkt->ip_dst[0],ip_pkt->ip_dst[1],ip_pkt->ip_dst[2],ip_pkt->ip_dst[3]);
   
   }
-  void print_udp_header(UDP ud,u_int len,PSEUDOIP sip)
+
+ void print_udp_header(UDP ud,u_int len,PSEUDOIP sip)
   {
 	  unsigned short checksum = ud->udp_checksum;
 	  ud->udp_checksum = 0;

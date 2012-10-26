@@ -10,7 +10,7 @@
 //! Big endian architecture.
 #define __BIG_ENDIAN__          4321
 //! The current architecture.
-#define __BYTE_ORDER__          __LITTLE_ENDIAN__
+//#define __BYTE_ORDER__          __LITTLE_ENDIAN__
 
 
 INLINE unsigned int ntohs_tos(unsigned short n){
@@ -114,12 +114,6 @@ INLINE BOOL is_space(u_char_t c)
 	return (c == 0x20);
 }
 
-INLINE void set_host_ip_net(u_char_t *,u_char_t *);
-
-INLINE u_char_t *get_host_ip();
-
-INLINE u_char_t *get_host_netmask();
-
 
 /*===================== eth includes===========================*/
 
@@ -128,11 +122,12 @@ INLINE u_char_t *get_host_netmask();
 
 #define ETH_ADDR_LEN               6
  
-#define ETH_HEAD_LEN            14
+#define ETH_HEAD_LEN           	   	14
 
-#define ETH_MIN_LEN             60
+#define ETH_MIN_LEN               	64
 
-#define ETH_MAX_LEN             1514
+#define ETH_MAX_LEN             	1514
+
 #define ETH_MAX_TRANSFER_UNIT   (ETH_MAX_LEN - ETH_HEAD_LEN)
  
 
@@ -148,13 +143,6 @@ typedef struct _ethernet
          u_int16_t type;
  }ethernet_t ;
 
- extern u_char_t host_mac[ETH_ADDR_LEN];
- 
- extern u_char_t eth_bcast[ETH_ADDR_LEN];
- 
- INLINE void set_host_mac(u_char_t *mac);
-
- INLINE u_char_t *get_host_mac();
  
 BOOL is_ethernet_header(void *buffer , ETH ether);
 void print_ethernet_header(ETH ether,u_int_t len);
@@ -163,41 +151,39 @@ void print_ethernet_header(ETH ether,u_int_t len);
 
 /*************************** ip includes ****************************************/
 
-#define IP_V4                   4
+#define IP_V4                   	4
  
-#define IP_LEN 		  		     4
+#define IP_LEN 		  		     	4
  
- #define IP_FRAME_LEN            65535
+ #define IP_FRAME_LEN            	65535
  
- #define IP_HEAD_MIN_LEN         20
+ #define IP_HEAD_MIN_LEN         	20
  
- #define IP_DEFAULT_TTL          64
+ #define IP_DEFAULT_TTL          	64
 
- #define IP_PROTO_TCP            6
+ #define IP_PROTO_TCP            	6
 
- #define IP_PROTO_UDP            0x11
- 
-
- #define IP_TOS_MIN_DELAY        0x10
-
- #define IP_TOS_MAX_THRU         0x08
-
- #define IP_TOS_MAX_RELY         0x04
-
- #define IP_TOS_MIN_COST         0x02
+ #define IP_PROTO_UDP            	0x11
  
 
- #define IP_FLAG_MF              0x2000
+ #define IP_TOS_MIN_DELAY        	0x10
 
- #define IP_FLAG_DF              0x4000
+ #define IP_TOS_MAX_THRU         	0x08
 
- #define IP_FLAG_SERVED          0x8000
+ #define IP_TOS_MAX_RELY         	0x04
 
- #define IP_FLAG_MASK            0x1FFF
-
-
- #define IP_ADDRESS(a, b, c, d)  ((a) | (b) << 8 | (c) << 16 | (d) << 24)
+ #define IP_TOS_MIN_COST         	0x02
  
+
+ #define IP_FLAG_MF              	0x2000
+
+ #define IP_FLAG_DF              	0x4000
+
+ #define IP_FLAG_SERVED          	0x8000
+
+ #define IP_FLAG_MASK            	0x1FFF
+
+
  #define INADDR_BROADCAST        IP_ADDRESS(255, 255, 255, 255)
 
  struct _ip;
@@ -232,10 +218,7 @@ void print_ethernet_header(ETH ether,u_int_t len);
  }ip_t;
  
 
- extern u_char_t host_ip[IP_LEN];
- extern u_char_t host_mask[IP_LEN];
 
- 
  u_int16_t ip_checksum(IP ip , u_int_t hdr_len);
  u_int16_t ip_checksum_v2(IP ip , u_int_t hdr_len);
 
