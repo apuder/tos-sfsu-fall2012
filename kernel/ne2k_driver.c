@@ -8,7 +8,7 @@
  * 
  */
 #include <kernel.h>
-#include "nll.h"
+#include <nll.h>
 
 PORT ne2k_driver_port;
 
@@ -314,11 +314,8 @@ static void ne_readmem(struct ne *ne, unsigned short src, char *dst, unsigned sh
 
     // Read NIC memory
     while (len > 0) {
-        unsigned short d;
-        d = inportw(ne->asic_addr + NE_NOVELL_DATA);
-        *dst++ = d;
-        *dst++ = d >> 8;
-        len -= 2;
+        *dst++ = inportb(ne->asic_addr + NE_NOVELL_DATA);
+        len--;
     }
 }
 
@@ -582,69 +579,19 @@ int ne_transmit(pbuf * p) {
     // COMMAND register set to "start" and "remote write DMA" (0x12)
     outportb(ne->nic_addr + NE_P0_CR, NE_CR_RD1 | NE_CR_STA);
 
-    wrap = 0;
-
     // Packets data is now written to the "data port" (that is register 0x10)
     // of the NIC in a loop (or using an "outsx" if available).
     // The NIC will then update its remote DMA logic after each written word/dword
     // and places bytes in the transmit ring buffer.
     for (q = p; q != NULL; q = q->next) {
         len = q->len;
-        if (len > 0) {
-            data = q->payload;
-
-            // Finish the last word
-            if (wrap) {
-                save_byte[1] = *data;
-                // kprintf("last byte data=%x\n", *(unsigned short *) save_byte);
-                outportw((unsigned short) (ne->asic_addr + NE_NOVELL_DATA), *(unsigned short *) save_byte);
-                data++;
-                len--;
-                wrap = 0;
-            }
-
-            // Output contiguous words
-            if (len > 1) {
-                // I'm replacing this one:
-                // outsw(ne->asic_addr + NE_NOVELL_DATA, data, len >> 1);
-
-                // With this one:
-                int len2 = len; //len >> 1;
-                while (len2 > 0) {
-                    /*
-                    unsigned short d;
-                    d = inportw(ne->asic_addr + NE_NOVELL_DATA);
-                     *dst++ = d;
-                     *dst++ = d >> 8;
-                    // sleep(1);
-                    len -= 2;
-                     unsigned short d;
-                     *dst++ = d;
-                     *dst++ = d >> 8;
-                     */
-                    outportw((unsigned short) (ne->asic_addr + NE_NOVELL_DATA), *(unsigned short *) data);
-                    sleep(1);
-                    data++;
-                    data++;
-                    len2 -= 2;
-                }
-
-                // this was in the original code
-                data += len & ~1;
-                len &= 1; // will be 1 if the length is odd
-            }
-
-            // Save last byte if necessary
-            if (len == 1) {
-                save_byte[0] = *data;
-                wrap = 1;
-            }
+        data = q->payload;
+        while (len > 0) {
+            outportb((unsigned short) (ne->asic_addr + NE_NOVELL_DATA), *(unsigned char *) data);
+            sleep(1);
+            data++;
+            len--;
         }
-    }
-
-    // Output last byte
-    if (wrap) {
-        outportw((unsigned short) (ne->asic_addr + NE_NOVELL_DATA), *(unsigned short *) save_byte);
     }
 
     // Wait for remote DMA complete
@@ -723,7 +670,7 @@ int ne_setup(struct ne *ne) {
     // Set page 0 registers, abort remote DMA, stop NIC
     outportb(ne->nic_addr + NE_P0_CR, NE_CR_RD2 | NE_CR_STP);
     // Set FIFO threshold to 8, auto-init remote DMA, byte order=80x86, word-wide DMA transfers
-    outportb(ne->nic_addr + NE_P0_DCR, NE_DCR_FT1 | NE_DCR_LS | NE_DCR_AR | NE_DCR_WTS);
+    outportb(ne->nic_addr + NE_P0_DCR, NE_DCR_FT1 | NE_DCR_LS | NE_DCR_AR);
     ne_readmem(ne, 0, romdata, 16);
     for (i = 0; i < ETHER_ADDR_LEN; i++) {
         ne->hwaddr.addr[i] = romdata[i * 2];
@@ -735,7 +682,7 @@ int ne_setup(struct ne *ne) {
     // Set FIFO threshold to 8, no auto-init remote DMA, byte order=80x86, word-wide DMA transfers
     //outportb(ne->nic_addr + NE_P0_DCR, NE_DCR_FT1 | NE_DCR_WTS | NE_DCR_LS);
     // Set FIFO threshold to 8, auto-init remote DMA, byte order=80x86, word-wide DMA transfers
-    outportb(ne->nic_addr + NE_P0_DCR, NE_DCR_FT1 | NE_DCR_LS | NE_DCR_AR | NE_DCR_WTS);
+    outportb(ne->nic_addr + NE_P0_DCR, NE_DCR_FT1 | NE_DCR_LS | NE_DCR_AR);
 
     // Clear remote byte count registers
     outportb(ne->nic_addr + NE_P0_RBCR0, 0);
@@ -890,46 +837,48 @@ void ne_send_data(struct eth_addr * dst_addr, void * data, int length) {
 }
 
 void ne_test_transmit() {
+
     kprintf("ne_test: Trying to send a packet...\n");
-    int len = 42;
-    struct eth_addr dst_mac = {0xFE, 0xFA, 0xDE, 0xAD, 0xBE, 0xEF};
-    char data[42] = {
-        // type (ARP)
-        0x08, 0x06,
-        // padding
-        0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-        0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-        0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-        0, 0, 0, 0, 0, 0, 0, 0, 0, 0
-    };
-    ne_send_ethernet(dst_mac, data, len);
+
+    ARP arp_packet;
+    u_char_t dst_ip[4] = {192, 168, 1, 1};
+    u_char_t src_ip[4] = {192, 168, 1, 2};
+    u_char_t dst_mac[6] = {0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF};
+    u_char_t src_mac[6] = {1, 2, 3, 4, 5, 6};
+    unsigned int arp_len = create_arp_packet(dst_ip, dst_mac, src_ip, src_mac, ARP_REQUEST, &arp_packet);
+
+    ne_send_ethernet((unsigned char *) dst_mac, (void *) &arp_packet, arp_len, ETHERTYPE_ARP);
+    // ne_send_ethernet(dst_mac, data, 42);
 }
 
-void ne_send_ethernet(struct eth_addr dst, char * data, int len) {
+//void ne_send_ethernet(struct eth_addr dst, char * data, int len) {
+
+void ne_send_ethernet(unsigned char * dst, void * data, unsigned int len, unsigned short type) {
     if (initialized != 1) {
         kprintf("sorry, ne2k has not been initialized\n");
         return;
     }
-
-    char _hdr_data[] = {
+    char hdr_data[] = {
         // destination MAC address
-        dst.addr[0], dst.addr[1], dst.addr[2],
-        dst.addr[3], dst.addr[4], dst.addr[5],
+        *(dst + 0), *(dst + 1), *(dst + 2),
+        *(dst + 3), *(dst + 4), *(dst + 5),
         // source MAC address
         __ne->hwaddr.addr[0], __ne->hwaddr.addr[1], __ne->hwaddr.addr[2],
         __ne->hwaddr.addr[3], __ne->hwaddr.addr[4], __ne->hwaddr.addr[5],
+        // type (hardcoded)
+        0x08, 0x06
     };
 
     pbuf header_buffer, data_buffer;
 
     data_buffer.next = NULL;
-    data_buffer.payload = &data;
+    data_buffer.payload = data;
     data_buffer.len = len;
     data_buffer.tot_len = len;
 
     header_buffer.next = &data_buffer;
-    header_buffer.payload = &_hdr_data;
-    header_buffer.len = 12; // Length of this buffer.
+    header_buffer.payload = &hdr_data;
+    header_buffer.len = 14; // Length of this buffer.
     header_buffer.tot_len = header_buffer.len + data_buffer.tot_len; // Total length of buffer + additionally chained buffers.
     header_buffer.size = (sizeof (unsigned int)); // Allocated size of buffer
 
