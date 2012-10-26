@@ -9,7 +9,7 @@ image/demo_tos.img
 include/assert.h
 include/kernel.h
 include/lib.h
-include/stdarg.h
+include/tos_util.h
 include/test.h
 kernel/.depend
 kernel/Makefile

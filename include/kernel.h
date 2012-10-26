@@ -3,7 +3,7 @@
 #define __KERNEL__
 
 #include <assert.h>
-#include <stdarg.h>
+#include <tos_util.h>
 
 #define TRUE	1
 #define FALSE	0

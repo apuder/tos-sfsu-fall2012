@@ -36,10 +36,10 @@ DEPS = ../../include/nll.h
 #	$(CC) $(CC_OPT) -o $@ -c $<
 
 $(OBJS): $(SRC) $(DEPS)
-	$(CC) -DLINUX -o -c $@ $<
+	$(CC) -I../../include -DNO_TOS -c -o $@ $<
 
-nll: $(OBJS)
-	$(CC) -o $(OBJS) $(LIBS)
+nll: linux_ver.o
+	$(CC) $(OBJS) -o $(LIBS)
 
 clean :
 	rm -f *~ *.o *.bak *.img

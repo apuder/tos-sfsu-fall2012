@@ -1,5 +1,6 @@
 
-#ifdef LINUX
+#ifdef NO_TOS
+	//#include <stdarg.h>
 	#include <pcap.h>
 	#include <stdio.h>
 	#include <stdlib.h> // for exit()
@@ -9,7 +10,7 @@
 	#include <sys/socket.h>
 #endif
 
-#include "nll.h"
+#include <nll.h>
 
 
 //#define DEBUG
