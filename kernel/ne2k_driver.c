@@ -585,7 +585,7 @@ int ne_transmit(pbuf * p) {
         data = q->payload;
         while (len > 0) {
             outportb((unsigned short) (ne->asic_addr + NE_NOVELL_DATA), *(unsigned char *) data);
-            sleep(1);
+            // sleep(1);
             data++;
             len--;
         }
@@ -830,8 +830,13 @@ void ne_test_transmit() {
     u_char_t dst_ip[4] = {192, 168, 1, 1};
     u_char_t src_ip[4] = {192, 168, 1, 2};
     u_char_t dst_mac[6] = {0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF};
-    u_char_t src_mac[6] = {1, 2, 3, 4, 5, 6};
+    u_char_t src_mac[6] = {
+        __ne->hwaddr.addr[0], __ne->hwaddr.addr[1], __ne->hwaddr.addr[3],
+        __ne->hwaddr.addr[3], __ne->hwaddr.addr[4], __ne->hwaddr.addr[5]
+    };
     unsigned int arp_len = create_arp_packet(dst_ip, dst_mac, src_ip, src_mac, ARP_REQUEST, &arp_pkt);
+
+    // print_arp(&arp_pkt, arp_len);
 
     ne_send_ethernet((unsigned char *) dst_mac, (void *) &arp_pkt, arp_len, ETHERTYPE_ARP);
     // ne_send_ethernet(dst_mac, data, 42);
