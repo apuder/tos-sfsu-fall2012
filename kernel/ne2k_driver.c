@@ -273,24 +273,6 @@ struct ne {
     // struct mutex txlock;               // Transmit lock
 };
 
-struct dev {
-    char name[DEVNAMELEN];
-    struct driver *driver;
-    struct unit *unit;
-    void *privdata;
-    int refcnt;
-    uid_t uid;
-    gid_t gid;
-    int mode;
-    struct devfile *files;
-    int reads;
-    int writes;
-    int input;
-    int output;
-    struct netif *netif;
-    int (*receive)(struct netif *netif, pbuf * p);
-};
-
 struct netstats *netstats;
 
 static void ne_readmem(struct ne *ne, unsigned short src, char *dst, unsigned short len) {
