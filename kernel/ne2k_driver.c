@@ -535,12 +535,9 @@ int ne_transmit(pbuf * p) {
     unsigned short dst;
     unsigned char *data;
     int len;
-    int wrap;
-    unsigned char save_byte[2];
     pbuf *q;
-    int i;
 
-    //    kprintf("ne_transmit: len=%d tot_len=%d\n", p->len, p->tot_len);
+    // kprintf("ne_transmit: len=%d tot_len=%d\n", p->len, p->tot_len);
     // kprintf("ne_transmit: payload=%X\n", *((unsigned int *) p->payload));
 
     // We need to transfer a whole number of words (2-byte), so dma_len has to be even
@@ -552,8 +549,8 @@ int ne_transmit(pbuf * p) {
     outportb(ne->nic_addr + NE_P0_CR, NE_CR_RD2 | NE_CR_STA);
 
 
-    //clear pending interupts
-    //    outportb(ne->nic_addr + NE_P0_ISR, 0xFF); // ISR
+    // clear pending interupts
+    // outportb(ne->nic_addr + NE_P0_ISR, 0xFF); // ISR
 
 
     // Reset remote DMA complete flag
@@ -825,29 +822,18 @@ void ne_show_info(struct ne *ne) {
             ne->hwaddr.addr[5]);
 }
 
-void ne_send_data(struct eth_addr * dst_addr, void * data, int length) {
-    pbuf p;
-    p.next = NULL;
-    p.payload = data;
-    p.len = length + 12; // Length of this buffer.
-    p.tot_len = length + 12; // Total length of buffer + additionally chained buffers.
-    p.size = length + 12; // Allocated size of buffer
-    ne_transmit(&p);
-
-}
-
 void ne_test_transmit() {
 
     kprintf("ne_test: Trying to send a packet...\n");
 
-    ARP arp_packet;
+    struct _arp arp_pkt;
     u_char_t dst_ip[4] = {192, 168, 1, 1};
     u_char_t src_ip[4] = {192, 168, 1, 2};
     u_char_t dst_mac[6] = {0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF};
     u_char_t src_mac[6] = {1, 2, 3, 4, 5, 6};
-    unsigned int arp_len = create_arp_packet(dst_ip, dst_mac, src_ip, src_mac, ARP_REQUEST, &arp_packet);
+    unsigned int arp_len = create_arp_packet(dst_ip, dst_mac, src_ip, src_mac, ARP_REQUEST, &arp_pkt);
 
-    ne_send_ethernet((unsigned char *) dst_mac, (void *) &arp_packet, arp_len, ETHERTYPE_ARP);
+    ne_send_ethernet((unsigned char *) dst_mac, (void *) &arp_pkt, arp_len, ETHERTYPE_ARP);
     // ne_send_ethernet(dst_mac, data, 42);
 }
 
