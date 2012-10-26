@@ -199,6 +199,9 @@ typedef unsigned short gid_t;
 unsigned int irq_mask = 0xFFFB;
 unsigned int initialized = 0;
 
+unsigned char NE_RX_BUFFER[256];
+unsigned char NE_TX_BUFFER[256];
+
 // Receive ring descriptor
 
 struct recv_ring_desc {
@@ -339,7 +342,6 @@ void ne_get_packet(struct ne *ne, unsigned short src, char *dst, unsigned short 
 }
 
 static void display_packet(void *payload, int size) {
-    int i;
     kprintf("DST=%02x:%02x:%02x:%02x:%02x:%02x",
             *((unsigned char *) payload + 0),
             *((unsigned char *) payload + 1),
@@ -357,13 +359,11 @@ static void display_packet(void *payload, int size) {
     kprintf(" TYPE=%02x:%02x\n",
             *((unsigned char *) payload + 12),
             *((unsigned char *) payload + 13));
+    int i;
     for (i = 14; i < size; i++)
         kprintf("%02x:", *((unsigned char *) payload + i));
     kprintf("\n");
 }
-
-unsigned char NE_RX_BUFFER[256];
-unsigned char NE_TX_BUFFER[256];
 
 void ne_receive(struct ne *ne) {
     struct recv_ring_desc packet_hdr;
@@ -407,14 +407,6 @@ void ne_receive(struct ne *ne) {
         }
          */
 
-        kprintf(", %d bytes\n", packet_hdr.count);
-        // rc = dev_receive(ne->devno, p);
-        rc = 0;
-        if (rc < 0) {
-            kprintf("ne_receive: error %d processing packet\n", rc);
-            // pbuf_free(p);
-        }
-
         // Set page 0 registers
         outportb(ne->nic_addr + NE_P0_CR, NE_CR_PAGE_0 | NE_CR_RD2 | NE_CR_STA);
 
@@ -430,7 +422,7 @@ void ne_receive(struct ne *ne) {
         // outportb(ne->nic_addr + NE_P0_BNRY, bndry);
         outportb(ne->nic_addr + NE_P0_BNRY, packet_hdr.next_pkt);
 
-        kprintf("start:0x%02x stop:0x%02x next:0x%02x bndry:0x%02x\n", ne->rx_page_start, ne->rx_page_stop, ne->next_pkt, bndry);
+        // kprintf("start:0x%02x stop:0x%02x next:0x%02x bndry:0x%02x\n", ne->rx_page_start, ne->rx_page_stop, ne->next_pkt, bndry);
 
         // Set page 1 registers
         outportb(ne->nic_addr + NE_P0_CR, NE_CR_PAGE_1 | NE_CR_RD2 | NE_CR_STA);
@@ -439,18 +431,16 @@ void ne_receive(struct ne *ne) {
 
     // show what we got
     display_packet(p->payload, p->len);
+    kprintf(", %d bytes\n", packet_hdr.count);
 }
 
 /*
  * Deferred Procedure Call?
- *
  */
 void ne_dpc(void *arg) {
 
     struct ne *ne = arg;
     unsigned char isr;
-
-    // kprintf("ne_dpc called (interrupt!)\n");
 
     // Select page 0
     outportb(ne->nic_addr + NE_P0_CR, NE_CR_RD2 | NE_CR_STA);
@@ -494,7 +484,6 @@ void ne_dpc(void *arg) {
 
 int ne_transmit(pbuf * p) {
     // int ne_transmit(struct dev *dev, struct pbuf *p) {
-    // struct ne *ne = dev->privdata;
     struct ne *ne = __ne;
     unsigned short dma_len;
     unsigned short dst;
@@ -550,7 +539,6 @@ int ne_transmit(pbuf * p) {
         data = q->payload;
         while (len > 0) {
             outportb((unsigned short) (ne->asic_addr + NE_NOVELL_DATA), *(unsigned char *) data);
-            // sleep(1);
             data++;
             len--;
         }
@@ -558,7 +546,7 @@ int ne_transmit(pbuf * p) {
 
     // Wait for remote DMA complete
     // Poll ISR register until bit 6 (Remote DMA completed) is set.
-    sleep(10);
+    sleep(1);
     // unsigned char wait;
     // while (((wait = inportb(ne->nic_addr + NE_P0_ISR)) & NE_ISR_RDC) == 0);
     // outportb(ne->nic_addr + NE_P0_ISR, wait);
@@ -581,7 +569,6 @@ int ne_transmit(pbuf * p) {
     outportb(ne->nic_addr + NE_P0_CR, NE_CR_RD2 | NE_CR_TXP | NE_CR_STA);
 
     // Wait for packet transmitted
-    sleep(1);
     /*
     if (wait_for_object(&ne->ptx, NE_TIMEOUT) < 0) {
         kprintf(KERN_WARNING "ne2000: timeout waiting for packet transmit\n");
@@ -590,12 +577,8 @@ int ne_transmit(pbuf * p) {
     }
      */
 
-    //    kprintf("ne_transmit: packet transmitted\n");
-    // pbuf_free(p);
-    // release_mutex(&ne->txlock);
+    // kprintf("ne_transmit: packet transmitted\n");
 
-    //Reset registers
-    ne_setup(__ne);
     return 0;
 }
 
