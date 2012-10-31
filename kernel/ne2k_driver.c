@@ -196,11 +196,12 @@ typedef unsigned short gid_t;
 #define IRQ2INTR(irq) (IRQBASE + (irq))
 #define INTRS 64
 
+// global vars
 unsigned int irq_mask = 0xFFFB;
-unsigned int initialized = 0;
-
+unsigned int NE_INTIALIZED = 0;
 unsigned char NE_RX_BUFFER[256];
 unsigned char NE_TX_BUFFER[256];
+unsigned char NE_DEBUG = 0;
 
 // Receive ring descriptor
 
@@ -260,6 +261,7 @@ struct ne {
     struct eth_addr hwaddr; // MAC address
     unsigned short iobase; // Configured I/O base
     unsigned short irq; // Configured IRQ
+    unsigned char ip[4]; // Configured IP
     unsigned short membase; // Configured memory base
     unsigned short memsize; // Configured memory size
     unsigned short asic_addr; // ASIC I/O bus address
@@ -342,27 +344,29 @@ void ne_get_packet(struct ne *ne, unsigned short src, char *dst, unsigned short 
 }
 
 static void display_packet(void *payload, int size) {
-    kprintf("DST=%02x:%02x:%02x:%02x:%02x:%02x",
-            *((unsigned char *) payload + 0),
-            *((unsigned char *) payload + 1),
-            *((unsigned char *) payload + 2),
-            *((unsigned char *) payload + 3),
-            *((unsigned char *) payload + 4),
-            *((unsigned char *) payload + 5));
-    kprintf(" SRC=%02x:%02x:%02x:%02x:%02x:%02x",
-            *((unsigned char *) payload + 6),
-            *((unsigned char *) payload + 7),
-            *((unsigned char *) payload + 8),
-            *((unsigned char *) payload + 9),
-            *((unsigned char *) payload + 10),
-            *((unsigned char *) payload + 11));
-    kprintf(" TYPE=%02x:%02x\n",
-            *((unsigned char *) payload + 12),
-            *((unsigned char *) payload + 13));
-    int i;
-    for (i = 14; i < size; i++)
-        kprintf("%02x:", *((unsigned char *) payload + i));
-    kprintf("\n");
+    if (NE_DEBUG) {
+        kprintf("DST=%02x:%02x:%02x:%02x:%02x:%02x",
+                *((unsigned char *) payload + 0),
+                *((unsigned char *) payload + 1),
+                *((unsigned char *) payload + 2),
+                *((unsigned char *) payload + 3),
+                *((unsigned char *) payload + 4),
+                *((unsigned char *) payload + 5));
+        kprintf(" SRC=%02x:%02x:%02x:%02x:%02x:%02x",
+                *((unsigned char *) payload + 6),
+                *((unsigned char *) payload + 7),
+                *((unsigned char *) payload + 8),
+                *((unsigned char *) payload + 9),
+                *((unsigned char *) payload + 10),
+                *((unsigned char *) payload + 11));
+        kprintf(" TYPE=%02x:%02x\n",
+                *((unsigned char *) payload + 12),
+                *((unsigned char *) payload + 13));
+        int i;
+        for (i = 14; i < size; i++)
+            kprintf("%02x:", *((unsigned char *) payload + i));
+        kprintf("\n");
+    }
 }
 
 void ne_receive(struct ne *ne) {
@@ -431,7 +435,6 @@ void ne_receive(struct ne *ne) {
 
     // show what we got
     display_packet(p->payload, p->len);
-    kprintf(", %d bytes\n", packet_hdr.count);
 }
 
 /*
@@ -449,34 +452,32 @@ void ne_dpc(void *arg) {
     while ((isr = inportb(ne->nic_addr + NE_P0_ISR)) != 0) {
         // isr = inportb(ne->nic_addr + NE_P0_ISR);
 
-        kprintf("ne_dpc: interrupt! isr=%d.\n", isr);
+        if (NE_DEBUG) kprintf("ne_dpc: interrupt! isr=%d.\n", isr);
 
         // Reset bits for interrupts being acknowledged
         outportb(ne->nic_addr + NE_P0_ISR, isr);
 
         // Packet received
         if (isr & NE_ISR_PRX) {
-            kprintf(" New packet arrived.\n");
+            if (NE_DEBUG) kprintf(" New packet arrived.\n");
             ne_receive(ne);
         }
 
         // Packet transmitted
         if (isr & NE_ISR_PTX) {
-            kprintf(" Packet transmitted.\n");
+            if (NE_DEBUG) kprintf(" Packet transmitted.\n");
             // set_event(&ne->ptx);
         }
 
         // Remote DMA complete
         if (isr & NE_ISR_RDC) {
-            kprintf(" Remote DMA complete.\n");
+            if (NE_DEBUG) kprintf(" Remote DMA complete.\n");
             // set_event(&ne->rdc);
         }
 
         // Select page 0
         outportb(ne->nic_addr + NE_P0_CR, NE_CR_RD2 | NE_CR_STA);
     }
-
-    // kprintf("IRQ is %x; %d", ne->irq, ne->irq);
 
     // Signal end of interrupt to PIC
     outportb(ne->nic_addr + NE_P0_ISR, 0xFF);
@@ -605,6 +606,10 @@ int ne_setup(struct ne *ne) {
     ne->next_pkt = NE_RX_PAGE_START; // 0x46 
     ne->rx_ring_start = ne->rx_page_start * NE_PAGE_SIZE;
     ne->rx_ring_end = ne->rx_page_stop * NE_PAGE_SIZE;
+    ne->ip[0] = 0;
+    ne->ip[1] = 0;
+    ne->ip[2] = 0;
+    ne->ip[3] = 0;
 
     // Probe for NE2000 card
     if (!ne_probe(ne)) {
@@ -711,8 +716,6 @@ int ne_setup(struct ne *ne) {
     // Create packet device
     // ne->devno = dev_make("eth#", &ne_driver, unit, ne);
 
-    // kprintf(KERN_INFO "%s: NE2000 iobase 0x%x irq %d mac %s\n", device(ne->devno)->name, ne->iobase, ne->irq, ether2str(&ne->hwaddr, str));
-
     return 1;
 }
 
@@ -761,13 +764,13 @@ void ne2k_driver_process(PROCESS self, PARAM param) {
 }
 
 void ne_show_info(struct ne *ne) {
-    kprintf("MAC_ADDR: %02x:%02x:%02x:%02x:%02x:%02x\n",
-            ne->hwaddr.addr[0],
-            ne->hwaddr.addr[1],
-            ne->hwaddr.addr[2],
-            ne->hwaddr.addr[3],
-            ne->hwaddr.addr[4],
-            ne->hwaddr.addr[5]);
+    kprintf("IP=%d.%d.%d.%d MAC=%02x:%02x:%02x:%02x:%02x:%02x DEBUG_MODE=%d\n",
+            ne->ip[0], __ne->ip[1], ne->ip[2], ne->ip[3],
+            ne->hwaddr.addr[0], ne->hwaddr.addr[1],
+            ne->hwaddr.addr[2], ne->hwaddr.addr[3],
+            ne->hwaddr.addr[4], ne->hwaddr.addr[5],
+            NE_DEBUG
+            );
 }
 
 void ne_test_transmit() {
@@ -793,7 +796,7 @@ void ne_test_transmit() {
 //void ne_send_ethernet(struct eth_addr dst, char * data, int len) {
 
 void ne_send_ethernet(unsigned char * dst, void * data, unsigned int len, unsigned short type) {
-    if (initialized != 1) {
+    if (NE_INTIALIZED != 1) {
         kprintf("sorry, ne2k has not been initialized\n");
         return;
     }
@@ -824,6 +827,90 @@ void ne_send_ethernet(unsigned char * dst, void * data, unsigned int len, unsign
     ne_transmit(&header_buffer);
 }
 
+int ne_is_command(char* s1, char* s2) {
+    while (*s1 == *s2 && *s2 != '\0') {
+        s1++;
+        s2++;
+    }
+    return *s2 == '\0';
+}
+
+void ne_config_ip(char * params) {
+    unsigned char octet[4] = {0, 0, 0, 0};
+    unsigned char currOctet = 0;
+    unsigned char numberJustRead = 0;
+    unsigned char currChar = 0;
+    while (*params != '\0' && currOctet < 4) {
+        currChar = *params;
+        params++;
+        switch (currChar) {
+            case '0':
+                numberJustRead = 0;
+                break;
+            case '1':
+                numberJustRead = 1;
+                break;
+            case '2':
+                numberJustRead = 2;
+                break;
+            case '3':
+                numberJustRead = 3;
+                break;
+            case '4':
+                numberJustRead = 4;
+                break;
+            case '5':
+                numberJustRead = 5;
+                break;
+            case '6':
+                numberJustRead = 6;
+                break;
+            case '7':
+                numberJustRead = 7;
+                break;
+            case '8':
+                numberJustRead = 8;
+                break;
+            case '9':
+                numberJustRead = 9;
+                break;
+            case '.':
+                // go to next octet
+                currOctet++;
+                continue;
+                break;
+            default:
+                return;
+                break;
+        }
+        octet[currOctet] = octet[currOctet] * 10 + numberJustRead;
+    }
+    __ne->ip[0] = octet[0];
+    __ne->ip[1] = octet[1];
+    __ne->ip[2] = octet[2];
+    __ne->ip[3] = octet[3];
+    kprintf("IP updated to %d.%d.%d.%d\n",
+            __ne->ip[0], __ne->ip[1], __ne->ip[2], __ne->ip[3]);
+}
+
+void ne_config(char * params) {
+    if (ne_is_command(params, "ip")) {
+        ne_config_ip(params + 3);
+
+    } else if (ne_is_command(params, "debug")) {
+        if (*(params + 6) == '1') {
+            NE_DEBUG = 1;
+            kprintf("Debug mode is ON.\n");
+        } else {
+            NE_DEBUG = 0;
+            kprintf("Debug mode is OFF.\n");
+        }
+
+    } else if (ne_is_command(params, "show")) {
+        ne_show_info(__ne);
+    }
+}
+
 /*-------------------------------------------------------------------*\
   init_ne2k_driver() - creates the ne2k_driver_process
 \*-------------------------------------------------------------------*/
@@ -837,7 +924,7 @@ void init_ne2k_test() {
 
     kprintf("ne_test: Initializing NE2000...\n");
 
-    initialized = ne_setup(__ne);
+    NE_INTIALIZED = ne_setup(__ne);
 
     sleep(1);
 
