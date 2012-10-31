@@ -1,6 +1,6 @@
 
-#ifndef __STDARG_H__
-#define __STDARG_H__
+#ifndef __TOS_UTIL_H__
+#define __TOS_UTIL_H__
 
 //#ifndef LINUX
 typedef char *va_list;

@@ -778,6 +778,7 @@ void ne_test_transmit() {
     kprintf("ne_test: Trying to send a packet...\n");
 
     struct _arp arp_pkt;
+    //ARP arp_pkt;
     u_char_t dst_ip[4] = {192, 168, 1, 1};
     u_char_t src_ip[4] = {192, 168, 1, 2};
     u_char_t dst_mac[6] = {0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF};
