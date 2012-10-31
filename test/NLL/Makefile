@@ -1,31 +1,33 @@
 
 # Options for the x86 cross compiler
 CC = gcc
-CC_OPT = -Wall -I../../include 
+CC_OPT = -Wall -fno-stack-protector 
+CFLAGS = -I../../include
 
-# Options for the host C-compiler
-CC_HOST = gcc
-CC_HOST_OPT = -I.
+LD = ld
+LD_OPT = -m elf_i386
+#--oformat elf32-i386 
+#-m elf_i386
 
-# Options for the host C++-compiler
-CPP_HOST = g++
+# pcap standard library 
 
-LIBS = -lpcap
+LIB = -lpcap
+OBJ_DIR = objects
+#SRC_DIR = ../../kernel
 
-# delete builtin rules
-%.o: %.c
-#%.o: %.s
+_OBJ = linux_ver.o arp.o ip.o eth.o udp.o
+OBJ = $(patsubst %,$(OBJ_DIR)/%,$(_OBJ))
 
-OBJS = linux_ver.o ip.o udp.o arp.o eth.o
-SRC = linux_ver.c ../../kernel/ip.c ../../kernel/udp.c ../../kernel/arp.c ../../kernel/eth.c
+#_SRC = arp.c ip.c eth.c udp.c
+#SRC  = $(patsubst %,$(SRC_DIR)/%,$(_SRC))
 
-nll: $(OBJS)
-	$(CC) -o $(OBJS)  $(LIBS)
 
-$(OBJS): $(SRC)
-	$(CC) $(CC_OPT) -DNO_TOS -c -o $@ $<
+$(OBJ_DIR)/%.o: %.c 
+	$(CC) $(CC_OPT) -DNO_TOS -c -o $@ $< $(CFLAGS)
+
+nll: $(OBJ)
+	$(CC) -o $@ $^ $(CFLAGS) $(LIB)
 
 clean :
-	rm -f *~ *.o *.bak *.img
+	rm -f *~ *.o $(OBJ_DIR)/*.o *.bak *.img
 
- 

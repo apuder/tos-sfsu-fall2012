@@ -7,22 +7,19 @@
 	#include <net/if.h>
 	#include <sys/ioctl.h>
 	#include <sys/socket.h>
-#endif
 
 #include <nll.h>
 
-
 void got_packet(u_char *args, const struct pcap_pkthdr *header, const u_char *packet);
 void printPacket(u_int_t len, const u_char_t * packet);
-
-void print_all_arp(ARP pkt);
+void print_all_arp(ARP *arp);
 
 ARP arp_request_packet;
 ARP arp_reply_packet;
-IP ip_packet;
+IP ip_header;
 ETH ether_header;
-UDP udp_header;
-PSEUDOIP sip;
+UDP udp;
+
 u_char_t *srip[4];
 u_char_t *dip[4];
 u_char_t *smask[4];
@@ -123,7 +120,7 @@ int main()
 void got_packet(u_char *args, const struct pcap_pkthdr *header, const  u_char *packet)
 {
 
-  if(is_arp_request(packet,(u_int_t)header->len,&arp_request_packet))
+  if(is_arp_request((void *)packet,(u_int_t)header->len,&arp_request_packet))
   {
      print_arp(&arp_request_packet,(u_int_t)header->len);
      print_all_arp(&arp_request_packet);
@@ -131,26 +128,26 @@ void got_packet(u_char *args, const struct pcap_pkthdr *header, const  u_char *p
 
   }
       
-  else if(is_arp_reply(packet,(u_int_t)header->len,&arp_reply_packet))
+ else if(is_arp_reply((void *)packet,(u_int_t)header->len,&arp_reply_packet))
   {
     print_arp(&arp_reply_packet,(u_int_t)header->len);
     print_all_arp(&arp_reply_packet);
 }
-  else if(is_ip_packet(packet,(u_int_t)header->len,&ip_packet))
+  else if(is_ip_packet((void *)packet,(u_int_t)header->len,&ip_header))
   {
     printf("\n************************************************************************\n");
-    if(is_ethernet_header(packet,&ether_header))
+    if(is_ethernet_header((void *)packet,(u_int_t)header->len,&ether_header))
     	print_ethernet_header(&ether_header,(u_int_t)header->len);
-    print_ip_header(&ip_packet,(u_int_t)header->len);
-  if(is_udp_packet(packet,(u_int_t)header->len,&udp_header)){
-	  set_pseudo_ip_header(&ip_packet,&sip);
-      print_udp_header(&udp_header,(u_int_t)header->len,&sip);
-      print_udp_data(&udp_header,&ip_packet,(u_int_t)header->len);
+    print_ip_header(&ip_header);
+  	if(is_udp_packet((void *)packet,(u_int_t)header->len,&udp)){
+	  print_udp_header(&udp,&ip_header.src[0],&ip_header.dst[0]);
+      //printPacket((u_int_t)((udp.len)-UDP_HEAD_MIN_LEN),udp.payload);
+		  print_udp_data(&udp);
       }
   }
 }
 
-void print_ethernet_header(ETH ether, u_int_t len)
+void print_ethernet_header(ETH *ether, u_int_t len)
 {
     
   printf("\n");
@@ -161,73 +158,71 @@ void print_ethernet_header(ETH ether, u_int_t len)
 }
 
 
-void print_arp(ARP pkt, u_int_t len)
+void print_arp(ARP *pkt, u_int_t len)
 {
 
     printf("\n###############################################################\n");
  
     printf("\nARP Header\n");
     printf("   |-ARP Packet Total Length   : %u  Bytes(Size of Packet)\n",len);
-    printf("   |-ARP Operation             : %s\n",pkt->arp_op == ARP_REQUEST ? "ARP REQUEST" : "ARP REPLY");
-    printf("   |-Sender MAC Address        : %02x:%02x:%02x:%02x:%02x:%02x\n",pkt->arp_eth_source[0],pkt->arp_eth_source[1],pkt->arp_eth_source[2],pkt->arp_eth_source[3],pkt->arp_eth_source[4],pkt->arp_eth_source[5]);
-    printf("   |-Sender IP Address         : %d.%d.%d.%d\n",pkt->arp_ip_source[0],pkt->arp_ip_source[1], pkt->arp_ip_source[2],pkt->arp_ip_source[3]);
-    printf("   |-Target MAC Address        : %02x:%02x:%02x:%02x:%02x:%02x\n",pkt->arp_eth_dest[0],pkt->arp_eth_dest[1],pkt->arp_eth_dest[2],pkt->arp_eth_dest[3],pkt->arp_eth_dest[4],pkt->arp_eth_dest[5]);
-    printf("   |-Target IP Address         : %d.%d.%d.%d\n",pkt->arp_ip_dest[0],pkt->arp_ip_dest[1],pkt->arp_ip_dest[2],pkt->arp_ip_dest[3]);
+    printf("   |-ARP Operation             : %s\n",pkt->op == ARP_REQUEST ? "ARP REQUEST" : "ARP REPLY");
+    printf("   |-Sender MAC Address        : %02x:%02x:%02x:%02x:%02x:%02x\n",pkt->eth_source[0],pkt->eth_source[1],\
+    										pkt->eth_source[2],pkt->eth_source[3],pkt->eth_source[4],pkt->eth_source[5]);
+    printf("   |-Sender IP Address         : %d.%d.%d.%d\n",pkt->ip_source[0],pkt->ip_source[1], \
+    										pkt->ip_source[2],pkt->ip_source[3]);
+    printf("   |-Target MAC Address        : %02x:%02x:%02x:%02x:%02x:%02x\n",pkt->eth_dest[0],pkt->eth_dest[1],\
+    										pkt->eth_dest[2],pkt->eth_dest[3],pkt->eth_dest[4],pkt->eth_dest[5]);
+    printf("   |-Target IP Address         : %d.%d.%d.%d\n",pkt->ip_dest[0],pkt->ip_dest[1],pkt->ip_dest[2],pkt->ip_dest[3]);
    
   }
-void print_ip_header(IP ip_pkt, u_int_t packet_len)
-{
-    unsigned short ipheader_len  = ip_pkt->ip_hdr_len*4;
+void print_ip_header(IP *ip_pkt)
+{	
+    unsigned short ipheader_len  = ip_pkt->hdr_len*4;
   
-    unsigned short checksum = ip_pkt ->ip_chksum;
-    ip_pkt ->ip_chksum = 0;
+    //unsigned short checksum = ip_pkt ->ip_chksum;
+    //ip_pkt ->ip_chksum = 0;
     
     printf("\n");
     printf("IP Header\n");
-    printf("   |-IP Version        : %u\n",ip_pkt->ip_version);
-    printf("   |-IP Header Length  : %u DWORDS or %u Bytes\n",ip_pkt->ip_hdr_len,ipheader_len);
-    printf("   |-Type Of Service   : %#04X\n",ip_pkt->ip_tos);
-    printf("   |-IP Total Length   : %u  Bytes(Size of Packet)\n",ip_pkt->ip_len);
-    printf("   |-Identification    : %#010x\n",ip_pkt->ip_id);
-    printf("   |-IP Offset         : %#010x\n",ip_pkt->ip_offset);
-    printf("   |-TTL               : %u\n",ip_pkt->ip_ttl);
-    printf("   |-Protocol          : %#04X\n",ip_pkt->ip_proto);
-    printf("   |-Checksum          : %#06X\n",checksum);
-    printf("   |-Computed checksum : %#06X\n",ntohs_tos(ip_checksum_v2(ip_pkt,ipheader_len)));
-    printf("   |-Source IP         : %u.%u.%u.%u\n" , ip_pkt->ip_src[0],ip_pkt->ip_src[1],ip_pkt->ip_src[2],ip_pkt->ip_src[3]);
-    printf("   |-Destination IP    : %u.%u.%u.%u\n" , ip_pkt->ip_dst[0],ip_pkt->ip_dst[1],ip_pkt->ip_dst[2],ip_pkt->ip_dst[3]);
+    printf("   |-IP Version        : %u\n",ip_pkt->version);
+    printf("   |-IP Header Length  : %u DWORDS or %u Bytes\n",ip_pkt->hdr_len,ipheader_len);
+    printf("   |-Type Of Service   : %#04X\n",ip_pkt->tos);
+    printf("   |-IP Total Length   : %u  Bytes(Size of Packet)\n",ntohs_tos(ip_pkt->len));
+    printf("   |-Identification    : %#04x\n",ntohs_tos(ip_pkt->id));
+    printf("   |-IP Offset         : %#04x\n",ntohs_tos(ip_pkt->offset));
+    printf("   |-TTL               : %u\n",ip_pkt->ttl);
+    printf("   |-Protocol          : %#04X\n",ip_pkt->protocol);
+    printf("   |-Checksum          : %#04X\n",ntohs_tos(ip_pkt->checksum));
+    printf("   |-Computed checksum : %#04X\n",ntohs_tos(ip_checksum_v2(ip_pkt)));
+    printf("   |-Source IP         : %u.%u.%u.%u\n" , ip_pkt->src[0],ip_pkt->src[1],ip_pkt->src[2], \
+           							  ip_pkt->src[3]);
+    printf("   |-Destination IP    : %u.%u.%u.%u\n" , ip_pkt->dst[0],ip_pkt->dst[1],ip_pkt->dst[2], \
+           							ip_pkt->dst[3]);
   
-  }
+  }		
 
- void print_udp_header(UDP ud,u_int len,PSEUDOIP sip)
+ void print_udp_header (UDP *ud,u_char_t *src,u_char_t *dst)
   {
-	  unsigned short checksum = ud->udp_checksum;
-	  ud->udp_checksum = 0;
 
     printf("\n");
     printf("UDP Header\n");
-    printf("   |-Source Port                : %u\n",ntohs_tos(ud->udp_src_port));
-    printf("   |-Destination Port           : %u\n",ntohs_tos(ud->udp_dst_port));
-    printf("   |-Length                     : %u\n",ntohs_tos(ud->udp_len));
-    printf("   |-UDP checksum (optional)    : %#06X\n",ntohs_tos(checksum));
-    printf("   |-Computed UDP checksum      : %#06X\n",ntohs_tos(udp_checksum(ud,len,sip)));
+    printf("   |-Source Port                : %u\n",ntohs_tos(ud->src_port));
+    printf("   |-Destination Port           : %u\n",ntohs_tos(ud->dst_port));
+    printf("   |-Length                     : %u\n",ntohs_tos(ud->len));
+	printf("   |-UDP checksum (optional)    : %#04X\n",ntohs_tos(ud->checksum));
+    printf("   |-Computed UDP checksum      : %#04X\n",ntohs_tos(udp_checksum(ud,src,dst)));
 
-    printf("PSEUDO IP Header\n");
-    printf("   |-Source IP         : %u.%u.%u.%u\n" , sip->ip_src[0],sip->ip_src[1],sip->ip_src[2],sip->ip_src[3]);
-    printf("   |-Destination IP    : %u.%u.%u.%u\n" , sip->ip_dst[0],sip->ip_dst[1],sip->ip_dst[2],sip->ip_dst[3]);
   }
   
- void print_udp_data(UDP ud,IP ip,u_int_t len)
+ void print_udp_data(UDP *ud)
  {
 
 
 	 u_int_t i , j;
 
- 	 u_int_t ipheaderlen = ip->ip_hdr_len*4;
-	 u_int_t header_length = ETH_HEAD_LEN + sizeof(ud) + ipheaderlen ;
-
-	 u_char_t *buf = ud->payload;
-	 u_int_t data_length = len - header_length;
+ 	 u_char_t *buf = (u_char_t *)ud->payload;
+	 u_int_t data_length = (ntohs_tos(ud->len)-UDP_HEAD_MIN_LEN);
+	 printf("%d",data_length);
 
 	 printf("\n###################################################################\n");
 	 for(i=0 ; i < data_length ; i++)
@@ -276,22 +271,24 @@ void print_ip_header(IP ip_pkt, u_int_t packet_len)
 
 
 	
-  void print_all_arp(ARP arp)
+  void print_all_arp(ARP *arp)
     {
       printf("\n###############################################################\n");
  
     printf("\nARP Header\n");
-    printf("   |-Hardware type             : %x\n",arp->arp_hard_type);
-    printf("   |-Protocol type             : %x\n",arp->arp_proto_type);
-    printf("   |-Hardware size             : %x\n",arp->arp_hard_size);
-    printf("   |-Protocol size             : %x\n",arp->arp_proto_size);
-    printf("   |-Operation                 : %x\n",arp->arp_op);
-    printf("   |-Source MAC Address        : %x%x%x%x%x%x\n",arp->arp_eth_source[0],arp->arp_eth_source[1],
-	   arp->arp_eth_source[2],arp->arp_eth_source[3],arp->arp_eth_source[4],arp->arp_eth_source[5]);
-    printf("   |-Source IP Address         : %x%x%x%x\n",arp->arp_ip_source[0],arp->arp_ip_source[1], arp->arp_ip_source[2],arp->arp_ip_source[3]);
-    printf("   |-Destination MAC Address   : %x%x%x%x%x%x\n",arp->arp_eth_dest[0],arp->arp_eth_dest[1],
-	   arp->arp_eth_dest[2],arp->arp_eth_dest[3],arp->arp_eth_dest[4],arp->arp_eth_dest[5]);
-    printf("   |-Destination IP Address    : %x%x%x%x\n",arp->arp_ip_dest[0],arp->arp_ip_dest[1],arp->arp_ip_dest[2],arp->arp_ip_dest[3]);
+    printf("   |-Hardware type             : %x\n",arp->hard_type);
+    printf("   |-Protocol type             : %x\n",arp->proto_type);
+    printf("   |-Hardware size             : %x\n",arp->hard_size);
+    printf("   |-Protocol size             : %x\n",arp->proto_size);
+    printf("   |-Operation                 : %x\n",arp->op);
+    printf("   |-Source MAC Address        : %x%x%x%x%x%x\n",arp->eth_source[0],arp->eth_source[1], \
+	   					arp->eth_source[2],arp->eth_source[3],arp->eth_source[4],arp->eth_source[5]);
+    printf("   |-Source IP Address         : %x%x%x%x\n",arp->ip_source[0],arp->ip_source[1], \
+           												arp->ip_source[2],arp->ip_source[3]);
+    printf("   |-Destination MAC Address   : %x%x%x%x%x%x\n",arp->eth_dest[0],arp->eth_dest[1],\
+	   							arp->eth_dest[2],arp->eth_dest[3],arp->eth_dest[4],arp->eth_dest[5]);
+    printf("   |-Destination IP Address    : %x%x%x%x\n",arp->ip_dest[0],arp->ip_dest[1],\
+           						arp->ip_dest[2],arp->ip_dest[3]);
     }
 
   void printPacket(u_int_t len, const u_char_t *packet){
@@ -302,17 +299,18 @@ void print_ip_header(IP ip_pkt, u_int_t packet_len)
    //printf("Packet Count: %d\n", ++(*counter));
    //printf("Received Packet Size: %d\n", len);
    //printf("Payload:\n");
-   for (i=0; i<len; i++){
+	for (i=0; i<len; i++){
 
       //if ( isprint(packet[i]) ) /* If it is a printable character, print it */
           printf("%02x:", packet[i]);
       //else
-         // printf(". ");
+         //printf(". ");
 
-       //if( (i%16 == 0 && i!=0) || i==len-1 )
-         // printf("\n");
+       if((i%16 == 0 && i!=0)|| i==len-1)
+         printf("\n");
     }
    printf("\n");
    printf("%d\n",len);
    return;
   }
+#endif
