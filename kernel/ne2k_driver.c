@@ -937,6 +937,8 @@ void process_incoming_packet(void * data, int len) {
                 src_ip, src_mac, ARP_REPLY, &arp_packet);
         ne_send_ethernet((unsigned char *) &dst_mac, (void *) &arp_packet, arp_len, ETHERTYPE_ARP);
 
+    } else if (is_udp_packet(data, len, &arp_packet)==TRUE){
+        kprintf("%d) UDP PACKET RECEIVED\n", ++count);
     } else {
         kprintf("%d) UNKNOWN PACKET RECEIVED\n", ++count);
     }
