@@ -575,7 +575,15 @@ int ne_transmit(pbuf * p) {
     return 0;
 }
 
-void ne_set_default_config(struct ne *ne) {
+int ne_setup(struct ne *ne) {
+    // original signature:
+    // int ne_setup(unsigned short iobase, int irq, unsigned short membase, unsigned short memsize, struct unit *unit) {
+
+    // struct unit *unit;
+    unsigned char romdata[16];
+    int i;
+    char str[20];
+
     // Setup NIC configuration
     ne->iobase = NE2K_IOBASE;
     ne->irq = NE2K_IRQ;
@@ -594,20 +602,11 @@ void ne_set_default_config(struct ne *ne) {
     ne->ip[1] = 168;
     ne->ip[2] = 1;
     ne->ip[3] = 2;
-}
-
-int ne_setup(struct ne *ne) {
-
-    ne_set_default_config(ne);
 
     // Probe for NE2000 card
     if (!ne_probe(ne)) {
         return 0;
     }
-
-    unsigned char romdata[16];
-    int i;
-    char str[20];
 
     // READ MAC !
     // Set page 0 registers, abort remote DMA, stop NIC
@@ -715,13 +714,15 @@ int ne_setup(struct ne *ne) {
 void ne2k_driver_notifier(PROCESS self, PARAM param) {
     // NE2K_Message msg;
     while (1) {
-        // kprintf("Waiting for IRQ...\n");
+        //        kprintf("Waiting for IRQ...\n");
         outportb(__ne->nic_addr + NE_P0_IMR, 0x1B);
         wait_for_interrupt(NE2K_IRQ);
-        // kprintf("Got an IRQ!\n");
-        ne_dpc(__ne);
         outportb(__ne->nic_addr + NE_P0_IMR, 0);
+        //        kprintf("Got an IRQ!\n");
+        ne_dpc(__ne);
+
     }
+
 }
 
 void ne2k_driver_process(PROCESS self, PARAM param) {
@@ -920,7 +921,6 @@ void process_incoming_packet(void * data, int len) {
     ARP arp_packet;
     if (is_arp_reply(data, len, &arp_packet) == TRUE) {
         print_arp(&arp_packet, len);
-        return;
 
     }
 
