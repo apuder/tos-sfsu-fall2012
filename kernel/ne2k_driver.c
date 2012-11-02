@@ -230,16 +230,6 @@ typedef struct dpc {
 typedef struct event {
 };
 
-struct eth_addr {
-    unsigned char addr[ETHER_ADDR_LEN];
-};
-
-struct eth_hdr {
-    struct eth_addr dest;
-    struct eth_addr src;
-    unsigned short type;
-};
-
 typedef struct pbuf {
     struct pbuf *next;
     unsigned short flags;
@@ -258,10 +248,10 @@ struct dpc *dpc_queue_head;
 
 struct ne {
     dev_t devno; // Device number
-    struct eth_addr hwaddr; // MAC address
+    unsigned char mac_addr[6]; // MAC address
+    unsigned char ip[4]; // Configured IP
     unsigned short iobase; // Configured I/O base
     unsigned short irq; // Configured IRQ
-    unsigned char ip[4]; // Configured IP
     unsigned short membase; // Configured memory base
     unsigned short memsize; // Configured memory size
     unsigned short asic_addr; // ASIC I/O bus address
@@ -435,6 +425,8 @@ void ne_receive(struct ne *ne) {
 
     // show what we got
     display_packet(p->payload, p->len);
+
+    process_incoming_packet(p->payload, p->len);
 }
 
 /*
@@ -606,10 +598,10 @@ int ne_setup(struct ne *ne) {
     ne->next_pkt = NE_RX_PAGE_START; // 0x46 
     ne->rx_ring_start = ne->rx_page_start * NE_PAGE_SIZE;
     ne->rx_ring_end = ne->rx_page_stop * NE_PAGE_SIZE;
-    ne->ip[0] = 0;
-    ne->ip[1] = 0;
-    ne->ip[2] = 0;
-    ne->ip[3] = 0;
+    ne->ip[0] = 192;
+    ne->ip[1] = 168;
+    ne->ip[2] = 1;
+    ne->ip[3] = 2;
 
     // Probe for NE2000 card
     if (!ne_probe(ne)) {
@@ -623,7 +615,7 @@ int ne_setup(struct ne *ne) {
     outportb(ne->nic_addr + NE_P0_DCR, NE_DCR_FT1 | NE_DCR_LS | NE_DCR_AR);
     ne_readmem(ne, 0, romdata, 16);
     for (i = 0; i < ETHER_ADDR_LEN; i++) {
-        ne->hwaddr.addr[i] = romdata[i * 2];
+        ne->mac_addr[i] = romdata[i * 2];
     }
 
     // Set page 0 registers, abort remote DMA, stop NIC
@@ -664,7 +656,7 @@ int ne_setup(struct ne *ne) {
 
     // Copy out our station address (PAR0..PAR5)
     for (i = 0; i < ETHER_ADDR_LEN; i++) {
-        outportb(ne->nic_addr + NE_P1_PAR0 + i, ne->hwaddr.addr[i]);
+        outportb(ne->nic_addr + NE_P1_PAR0 + i, ne->mac_addr[i]);
     }
 
     // Start NIC
@@ -722,15 +714,13 @@ int ne_setup(struct ne *ne) {
 void ne2k_driver_notifier(PROCESS self, PARAM param) {
     // NE2K_Message msg;
     while (1) {
-        //        kprintf("Waiting for IRQ...\n");
+        // kprintf("Waiting for IRQ...\n");
         outportb(__ne->nic_addr + NE_P0_IMR, 0x1B);
         wait_for_interrupt(NE2K_IRQ);
-        outportb(__ne->nic_addr + NE_P0_IMR, 0);
-        //        kprintf("Got an IRQ!\n");
+        // kprintf("Got an IRQ!\n");
         ne_dpc(__ne);
-
+        outportb(__ne->nic_addr + NE_P0_IMR, 0);
     }
-
 }
 
 void ne2k_driver_process(PROCESS self, PARAM param) {
@@ -766,9 +756,9 @@ void ne2k_driver_process(PROCESS self, PARAM param) {
 void ne_show_info(struct ne *ne) {
     kprintf("IP=%d.%d.%d.%d MAC=%02x:%02x:%02x:%02x:%02x:%02x DEBUG_MODE=%d\n",
             ne->ip[0], __ne->ip[1], ne->ip[2], ne->ip[3],
-            ne->hwaddr.addr[0], ne->hwaddr.addr[1],
-            ne->hwaddr.addr[2], ne->hwaddr.addr[3],
-            ne->hwaddr.addr[4], ne->hwaddr.addr[5],
+            ne->mac_addr[0], ne->mac_addr[1],
+            ne->mac_addr[2], ne->mac_addr[3],
+            ne->mac_addr[4], ne->mac_addr[5],
             NE_DEBUG
             );
 }
@@ -779,11 +769,11 @@ void ne_test_transmit() {
 
     ARP arp_pkt;
     u_char_t dst_ip[4] = {192, 168, 1, 1};
-    u_char_t src_ip[4] = {192, 168, 1, 2};
+    u_char_t src_ip[4] = {__ne->ip[0], __ne->ip[1], __ne->ip[2], __ne->ip[3]};
     u_char_t dst_mac[6] = {0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF};
     u_char_t src_mac[6] = {
-        __ne->hwaddr.addr[0], __ne->hwaddr.addr[1], __ne->hwaddr.addr[2],
-        __ne->hwaddr.addr[3], __ne->hwaddr.addr[4], __ne->hwaddr.addr[5]
+        __ne->mac_addr[0], __ne->mac_addr[1], __ne->mac_addr[2],
+        __ne->mac_addr[3], __ne->mac_addr[4], __ne->mac_addr[5]
     };
     unsigned int arp_len = create_arp_packet(dst_ip, dst_mac, src_ip, src_mac, ARP_REQUEST, &arp_pkt);
 
@@ -797,7 +787,7 @@ void ne_test_transmit() {
 
 void ne_send_ethernet(unsigned char * dst, void * data, unsigned int len, unsigned short type) {
     if (NE_INTIALIZED != 1) {
-        kprintf("sorry, ne2k has not been initialized\n");
+        kprintf("Sorry, NE2000 has not been initialized!\n");
         return;
     }
     char hdr_data[] = {
@@ -805,8 +795,8 @@ void ne_send_ethernet(unsigned char * dst, void * data, unsigned int len, unsign
         *(dst + 0), *(dst + 1), *(dst + 2),
         *(dst + 3), *(dst + 4), *(dst + 5),
         // source MAC address
-        __ne->hwaddr.addr[0], __ne->hwaddr.addr[1], __ne->hwaddr.addr[2],
-        __ne->hwaddr.addr[3], __ne->hwaddr.addr[4], __ne->hwaddr.addr[5],
+        __ne->mac_addr[0], __ne->mac_addr[1], __ne->mac_addr[2],
+        __ne->mac_addr[3], __ne->mac_addr[4], __ne->mac_addr[5],
         // type (hardcoded)
         0x08, 0x06
     };
@@ -833,6 +823,10 @@ int ne_is_command(char* s1, char* s2) {
         s2++;
     }
     return *s2 == '\0';
+}
+
+void ne_show_help() {
+    kprintf("Usage:\nneconfig [show|ip X.X.X.X|debug [0|1]]\n");
 }
 
 void ne_config_ip(char * params) {
@@ -894,7 +888,11 @@ void ne_config_ip(char * params) {
 }
 
 void ne_config(char * params) {
-    if (ne_is_command(params, "ip")) {
+    if (NE_INTIALIZED != 1) {
+        kprintf("Sorry, NE2000 has not been initialized!\n");
+        return;
+
+    } else if (ne_is_command(params, "ip")) {
         ne_config_ip(params + 3);
 
     } else if (ne_is_command(params, "debug")) {
@@ -908,6 +906,37 @@ void ne_config(char * params) {
 
     } else if (ne_is_command(params, "show")) {
         ne_show_info(__ne);
+
+    } else {
+        ne_show_help();
+
+    }
+}
+
+void process_incoming_packet(void * data, int len) {
+    static int count = 0;
+
+    ARP arp_packet;
+    if (is_arp_reply(data, len, &arp_packet) == TRUE) {
+        print_arp(&arp_packet, len);
+
+    } else if (is_arp_request(data, len, &arp_packet) == TRUE) {
+        unsigned char dst_mac[6] = {
+            arp_packet.ip_source[0], arp_packet.ip_source[1], arp_packet.ip_source[2],
+            arp_packet.ip_source[3], arp_packet.ip_source[4], arp_packet.ip_source[5],
+        };
+        u_char_t src_ip[4] = {__ne->ip[0], __ne->ip[1], __ne->ip[2], __ne->ip[3]};
+        u_char_t src_mac[6] = {
+            __ne->mac_addr[0], __ne->mac_addr[1], __ne->mac_addr[2],
+            __ne->mac_addr[3], __ne->mac_addr[4], __ne->mac_addr[5]
+        };
+        unsigned int arp_len = create_arp_packet(
+                arp_packet.ip_source, arp_packet.eth_source,
+                src_ip, src_mac, ARP_REPLY, &arp_packet);
+        ne_send_ethernet((unsigned char *) &dst_mac, (void *) &arp_packet, arp_len, ETHERTYPE_ARP);
+
+    } else {
+        kprintf("%d) UNKNOWN PACKET RECEIVED\n", ++count);
     }
 }
 
