@@ -26,9 +26,9 @@ void print_ethernet_header(ETH *ether, u_int_t len)
   kprintf("\n");
   kprintf("\n###############################################################\n");
   kprintf("Ethernet Header\n");
-  kprintf("   |-Destination Address : %02x:%02x:%02x:%02x:%02x:%02x\n", ether->dst[0] , ether->dst[1] , ether->dst[2] , ether->dst[3] , ether->dst[4] , ether->dst[5] );
-  kprintf("   |-Source Address      : %02x:%02x:%02x:%02x:%02x:%02x\n", ether->src[0] , ether->src[1] , ether->src[2] , ether->src[3] , ether->src[4] , ether->src[5] );
-  kprintf("   |-Protocol            : %04x\n",ntohs_tos(ether->type));
+  kprintf("   |-Destination Address : %02x:%02x:%02x:%02x:%02x:%02x \n", ether->dst[0] , ether->dst[1] , ether->dst[2] , ether->dst[3] , ether->dst[4] , ether->dst[5] );
+  kprintf("   |-Source Address      : %02x:%02x:%02x:%02x:%02x:%02x \n", ether->src[0] , ether->src[1] , ether->src[2] , ether->src[3] , ether->src[4] , ether->src[5] );
+  kprintf("   |-Protocol            : %02x \n",ntohs_tos(ether->type));
 }
 
 void print_ip_header(IP *ip_pkt)
@@ -65,7 +65,8 @@ void print_udp_header(UDP *ud, u_char_t *src,u_char_t *dst)
     kprintf("   |-Destination Port           : %u\n",ntohs_tos(ud->dst_port));
     kprintf("   |-Length                     : %u\n",ntohs_tos(ud->len));
 	kprintf("   |-UDP checksum (optional)    : %04x\n",ntohs_tos(ud->checksum));
-   	}
+    kprintf("   |-Computed UDP checksum      : %04x\n",ntohs_tos(udp_checksum(ud,src,dst)));;
+	}
 
 void print_packet(void *packet,u_int_t len)
 {
@@ -79,57 +80,4 @@ void print_packet(void *packet,u_int_t len)
     }
    kprintf("\n");
 }
-
-
-void print_udp_data(UDP *ud)
- {
-	 u_int_t i , j;
- 	 u_char_t *buf = (u_char_t *)ud->payload;
-	 u_int_t data_length = (ntohs_tos(ud->len)-UDP_HEAD_MIN_LEN);
-	 kprintf("%d",data_length);
-
-	 kprintf("\n###################################################################\n");
-	 for(i=0 ; i < data_length ; i++)
-		  {
-			  if( i!=0 && i%16==0)   //if one line of hex printing is complete...
-				  {
-				  	  kprintf( "         ");
-					  for(j=i-16 ; j<i ; j++)
-					  {
-						  if(buf[j]>=32 && buf[j]<=128)
-							  kprintf("%c",(u_char_t)buf[j]); //if its a number or alphabet
-
-						  else kprintf("."); //otherwise print a dot
-					  }
-					  kprintf( "\n");
-				  }
-
-				  if(i%16==0) kprintf("   ");
-				  kprintf(" %02X",(u_int_t)buf[i]);
-
-				  if( i==data_length-1)  //print the last spaces
-				  {
-					  for(j=0;j<15-i%16;j++)
-					  {
-						  kprintf("   "); //extra spaces
-					  }
-
-					  kprintf("         ");
-
-					  for(j=i-i%16 ; j<=i ; j++)
-					  {
-						  if(buf[j]>=32 && buf[j]<=128)
-						  {
-							  kprintf("%c",(u_char_t)buf[j]);
-						  }
-						  else
-						  {
-							  kprintf(".");
-						  }
-					  }
-
-					  kprintf("\n" );
-				  }
-			  }
-		  }
 #endif

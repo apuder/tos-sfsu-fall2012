@@ -131,6 +131,7 @@ INLINE BOOL is_space(u_char_t c)
          u_int16_t type;
 		
  }ETH;
+
  
 BOOL is_ethernet_header(void *buffer , u_int_t len, ETH *ether);
 void print_ethernet_header(ETH *ether,u_int_t len);
@@ -171,10 +172,10 @@ typedef struct
 	u_int16_t 	checksum;
 	u_char_t 	src[IP_LEN];
 	u_char_t 	dst[IP_LEN];
-	 
+	
+ 
  }IP;
-
-
+ 
 
 
  u_int16_t ip_checksum(IP *ip);
@@ -182,7 +183,6 @@ typedef struct
 
 
  BOOL is_ip_packet(void *buffer,u_int_t len , IP *ip_pkt);
- int create_ip_hr(u_char_t *src_ip,u_char_t *dst_ip,u_int_t payload_len,IP *ip);
  int inet_aton_tos(u_char_t *dot_ip, u_char_t *net_ip);
  void print_ip_header(IP *ip_pkt);
 
@@ -220,7 +220,6 @@ typedef struct
 #define UDP_HEAD_MIN_LEN	8
 #define UDP_PSEUDO_H_LEN   12	
 #define	MAX_PAYLOAD		   250
-#define MAX_PACKET_SIZE	   300
 
 typedef struct 
 {
@@ -236,17 +235,14 @@ typedef struct
 	 u_int16_t dst_port;
 	 u_int16_t len;
 	 u_int16_t checksum;
-	 u_char_t payload[MAX_PAYLOAD];
+	 void *payload;
 } UDP;
 
-typedef struct {
-	u_char_t buffer[MAX_PACKET_SIZE];
-}udp_packet;
+
+
+
   
- u_int16_t udp_checksum(UDP *udp,u_char_t *src_ip,u_char_t *dst_ip,int len);
- int create_udp_packet(u_int16_t src_port,u_int16_t dst_port,u_char_t *src_ip, \
-     				u_char_t *dst_ip,u_int_t payload_len,void *payload,udp_packet *packet);
- int create_udp_hr(u_int16_t src_port,u_int16_t dst_port,u_int_t payload_len,void *payload,UDP *ud);
+ u_int16_t udp_checksum(UDP *udp,u_char_t *src_ip,u_char_t *dst_ip);
  BOOL is_udp_packet(void *buffer,u_int_t len, UDP *packet);
  void print_udp_header (UDP *ud,u_char_t *src,u_char_t *dst);
  void print_udp_data(UDP *ud);

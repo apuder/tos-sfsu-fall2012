@@ -4,33 +4,43 @@ import java.io.*;
 import java.net.*;
 
 public class UDP {
-
+	private final static int PACKETSIZE = 100 ;
     /**
      * @param args the command line arguments
      */
-    public static void main(String[] args) {
-        try {
-            String[] destintationIp = args[0].split(".", 4);
-            int byte1 = Integer.valueOf(destinationIp[0]).intValue();
-            int destintationPort = Integer.valueOf(args[1]).intValue();
-            String content = args[2];
-            int port = 90;
+	 public static void main( String args[] )
+	   {
 
-            byte[] message = "Java Source and Support".getBytes();
+	      DatagramSocket socket = null ;
 
-            // Get the internet address of the specified host
-            InetAddress address = InetAddress.getByName(host);
+	      try
+	      {
+	         // Convert the arguments first, to ensure that they are valid
+	         InetAddress host = InetAddress.getByName( args[0] ) ;
+	         int port         = Integer.parseInt( args[1] ) ;
 
-            // Initialize a datagram packet with data and address
-            DatagramPacket packet = new DatagramPacket(message, message.length,
-                    address, port);
+	         // Construct the socket
+	         socket = new DatagramSocket() ;
 
-            // Create a datagram socket, send the packet through it, close it.
-            DatagramSocket dsocket = new DatagramSocket();
-            dsocket.send(packet);
-            dsocket.close();
-        } catch (Exception e) {
-            System.err.println(e);
-        }
-    }
+	         // Construct the datagram packet
+	         byte [] data = args[2].getBytes() ;
+	         DatagramPacket packet = new DatagramPacket( data, data.length, host, port ) ;
+
+	         // Send it
+	         socket.send( packet ) ;
+
+	         // Set a receive timeout, 2000 milliseconds
+	         socket.setSoTimeout( 2000 ) ;
+	         
+	      }
+	      catch( Exception e )
+	      {
+	         System.out.println( e ) ;
+	      }
+	      finally
+	      {
+	         if( socket != null )
+	            socket.close() ;
+	      }
+	   }
 }
