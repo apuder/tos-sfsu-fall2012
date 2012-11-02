@@ -714,13 +714,15 @@ int ne_setup(struct ne *ne) {
 void ne2k_driver_notifier(PROCESS self, PARAM param) {
     // NE2K_Message msg;
     while (1) {
-        // kprintf("Waiting for IRQ...\n");
+        //        kprintf("Waiting for IRQ...\n");
         outportb(__ne->nic_addr + NE_P0_IMR, 0x1B);
         wait_for_interrupt(NE2K_IRQ);
-        // kprintf("Got an IRQ!\n");
-        ne_dpc(__ne);
         outportb(__ne->nic_addr + NE_P0_IMR, 0);
+        //        kprintf("Got an IRQ!\n");
+        ne_dpc(__ne);
+
     }
+
 }
 
 void ne2k_driver_process(PROCESS self, PARAM param) {
@@ -919,10 +921,8 @@ void process_incoming_packet(void * data, int len) {
     ARP arp_packet;
     if (is_arp_reply(data, len, &arp_packet) == TRUE) {
         print_arp(&arp_packet, len);
-        return;
-    }
 
-    if (is_arp_request(data, len, &arp_packet) == TRUE) {
+    } else if (is_arp_request(data, len, &arp_packet) == TRUE) {
         unsigned char dst_mac[6] = {
             arp_packet.ip_source[0], arp_packet.ip_source[1], arp_packet.ip_source[2],
             arp_packet.ip_source[3], arp_packet.ip_source[4], arp_packet.ip_source[5],
@@ -936,33 +936,10 @@ void process_incoming_packet(void * data, int len) {
                 arp_packet.ip_source, arp_packet.eth_source,
                 src_ip, src_mac, ARP_REPLY, &arp_packet);
         ne_send_ethernet((unsigned char *) &dst_mac, (void *) &arp_packet, arp_len, ETHERTYPE_ARP);
-        return;
+
+    } else {
+        kprintf("%d) UNKNOWN PACKET RECEIVED\n", ++count);
     }
-
-    IP ip_packet;
-    if (is_ip_packet(data, len, &ip_packet) == TRUE) {
-
-        if (ip_packet.dst[0] != __ne->ip[0]
-                || ip_packet.dst[1] != __ne->ip[1]
-                || ip_packet.dst[2] != __ne->ip[2]
-                || ip_packet.dst[3] != __ne->ip[3]) {
-            kprintf("NOT OUR IP\n");
-            return;
-        }
-
-        kprintf("OUR IP!\n");
-        UDP udp_packet;
-        if (is_udp_packet(data, len, &udp_packet) == TRUE) {
-            unsigned int i = 0;
-            unsigned char * ptr = (unsigned char *) udp_packet.payload;
-            for (i = 0; i < udp_packet.len; i++, ptr++) {
-                kprintf("%c", *ptr);
-            }
-            return;
-        }
-    }
-
-    kprintf("%d) UNKNOWN PACKET RECEIVED\n", ++count);
 }
 
 /*-------------------------------------------------------------------*\
