@@ -714,15 +714,13 @@ int ne_setup(struct ne *ne) {
 void ne2k_driver_notifier(PROCESS self, PARAM param) {
     // NE2K_Message msg;
     while (1) {
-        //        kprintf("Waiting for IRQ...\n");
+        // kprintf("Waiting for IRQ...\n");
         outportb(__ne->nic_addr + NE_P0_IMR, 0x1B);
         wait_for_interrupt(NE2K_IRQ);
-        outportb(__ne->nic_addr + NE_P0_IMR, 0);
-        //        kprintf("Got an IRQ!\n");
+        // kprintf("Got an IRQ!\n");
         ne_dpc(__ne);
-
+        outportb(__ne->nic_addr + NE_P0_IMR, 0);
     }
-
 }
 
 void ne2k_driver_process(PROCESS self, PARAM param) {
