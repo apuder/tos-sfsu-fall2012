@@ -2,6 +2,9 @@
 #define _IP_C
 
 #include <nll.h>
+#ifdef NO_TOS
+	#include <stdio.h>
+#endif
 
   BOOL is_ip_packet(void *buffer, u_int_t len, IP *ip_pkt)
   {
@@ -27,6 +30,8 @@
 		  ip_pkt->checksum = *((u_int16_t *)(ipheader + 10));
 		  memcpy_tos(ip_pkt->src,(u_char_t *)(ipheader + 12),IP_LEN);
 		  memcpy_tos(ip_pkt->dst,(u_char_t *)(ipheader + 16),IP_LEN);
+		  if(ip_pkt->checksum != ip_checksum(ip_pkt))
+			  return FALSE;
 		  //ip_pkt->payload = (void *)&ethheader.payload[IP_HEAD_MIN_LEN];
 		  #ifdef NO_TOS
 				//printPacket(payload_len,(u_char_t *)ip_pkt->payload);
@@ -40,35 +45,35 @@
 
  
  u_int16_t ip_checksum(IP *ip)
-  {
-	
+{
+	u_int16_t temp = ip->checksum;
 	ip->checksum = 0;
-   
-	int len = (ip->hdr_len)*4;
-	unsigned long sum = 0;  /* assume 32 bit long, 16 bit short */
-    const u_int16_t *ip1 = (u_int16_t *)ip;
-    
-           while(len > 1){
-             sum += *(ip1)++;
-             if(sum & 0x80000000)   /* if high order bit set, fold */
-               sum = (sum & 0xFFFF) + (sum >> 16);
-             len -= 2;
-           }
 
-           if(len)      /* take care of left over byte */
-             sum += (unsigned short) *(unsigned char *)ip;
-          
-           while(sum>>16)
-             sum = (sum & 0xFFFF) + (sum >> 16);
-		   return ~sum;
- }
+	int len = ip->hdr_len <<2;
+	unsigned long sum = 0;  /* assume 32 bit long, 16 bit short */
+	const u_int16_t *ip1 = (u_int16_t *)ip;
+
+	while(len > 1){
+		sum += *(ip1)++;
+		if(sum & 0x80000000)   /* if high order bit set, fold */
+			sum = (sum & 0xFFFF) + (sum >> 16);
+		len -= 2;
+	}
+
+	if(len)      /* take care of left over byte */
+		sum += (unsigned short) *(unsigned char *)ip;
+
+	while(sum>>16)
+		sum = (sum & 0xFFFF) + (sum >> 16);
+	ip->checksum = temp;
+	return ~sum;
+}
  
  u_int16_t ip_checksum_v2(IP *ip){
 
-	 //unsigned short temp = ip->checksum;
 	 ip->checksum = 0;
-	 //ip->payload =  0;
-	 int len = (ip->hdr_len)*4;
+
+	 int len = ip->hdr_len<<2;
 	 unsigned long  sum = 0;
 	 unsigned short answer = 0;
 	 unsigned short *w = (unsigned short *)ip;
@@ -82,65 +87,80 @@
     sum = (sum >> 16) + (sum & 0xFFFF);
     sum += (sum >> 16);
     answer = ~sum;
-	//ip->checksum = temp;
-    return(answer);
+
+	 return(answer);
  }
- 
- /*int inet_aton_tos(u_char_t *dot_ip, u_char_t *net_ip)
-  {
-          //static const in_addr_t max[4] = { 0xFFFFFFFF, 0xFFFFFF, 0xFFFF, 0xFF };
-          //u_int_t ;
-          u_char_t c;
-          //union iaddr {
-            //uint8_t bytes[4];
-            //uint32_t word;
-          //} res;
-          //uint8_t *pp = res.bytes;
-          u_int_t digit,base,val;
 
-         //res.word = 0;
 
-          c = *(dot_ip);
-          u_char_t *p = net_ip;
-         // printf("%s",c);
-          for (;;) {
-                  // Collect number up to '.'                             //
-                  // Values are specified as for C:                       //
-                  // 0x=hex, 0=octal, isdigit=decimal.                    //
-                  if (!is_digit(c))
-                	  return -1;
-                  val = 0; base = 10; digit = 0;
-                  for (;;) {
-                          if (is_digit(c)) {
-                                  val = (val * base) + (c - '0');
-                                  c = *++dot_ip;
-                                  digit = 1;
-                          } else {
-                                  break;
-                          }
-                  }
-                  if (c == '.') {
-                          // Internet format:                             //
-                          //      a.b.c.d                                 //
-                          //      a.b.c   (with c treated as 16 bits)     //
-                          //      a.b     (with b treated as 24 bits)     //
-                          //if (net_ip > p + 2 || val > 0xff) {
-                            //      return -1;
-                         // }
-                          //printf("%d",val);
-                          *net_ip++ = val;
-                          c = *++dot_ip;
-                          //printf("%s",c);
-                  } else
-                          break;
-          }
+/* 
+ *method to convert an ip from dot decimal notation
+ * to an array of 4 bytes.
+ */
 
-          // Check for trailing characters                                //
-          if (c != '\0' && (!is_ascii(c) || !is_space(c))) {
-                  return -1;
-          }
- return 0;
-  }*/
+int inet_aton_tos(u_char_t *dot_ip, u_char_t *net_ip)
+{
+	u_int_t base,val;
+	u_char_t c = *dot_ip;
+
+	int dot_count = 1;
+
+	for (;;) 
+	{
+
+		if (!is_digit(c))
+			return -1;
+		val = 0; base = 10; 
+
+		for (;;) 
+		{
+			if (is_digit(c)) 
+			{
+				val = (val * base) + (c - '0');
+				if(val > 255)
+					return -1;
+				c = *++dot_ip;
+			} else break;
+		}
+		if (c == '.') 
+		{
+			if (dot_count > 3)
+				return -1;
+			*net_ip++ = val;
+			dot_count++;
+			c = *++dot_ip;
+
+		} else break;
+	}
+
+	if(dot_count < 3)
+		return -1;
+	if (c != '\0' && (!is_ascii(c) || !is_space(c))) {
+		return -1;
+	}
+	*net_ip = val;
+	return 0;
+}
+
+int create_ip_hr(u_char_t *src_ip,u_char_t *dst_ip,u_int_t payload_len,IP *packet)
+{
+	unsigned short packet_len = (sizeof(IP) + payload_len);
+	
+	packet->version = IP_V4;
+	packet->hdr_len = sizeof(IP) / sizeof(int);
+	packet->tos = IP_TOS_MIN_DELAY;
+	packet->len = htons_tos(packet_len);
+	packet->id =  htons_tos(0xDEAD);
+	packet->offset = htons_tos(IP_FLAG_DF);
+	packet->ttl = IP_DEFAULT_TTL;
+	packet->protocol = IP_PROTO_UDP;
+	packet->checksum = 0;
+	memcpy_tos(packet->src, src_ip, IP_LEN);
+	memcpy_tos(packet->dst, dst_ip, IP_LEN);
+	packet->checksum = ip_checksum(packet);
+
+	return (int)packet_len;
+}
+
 
 
 #endif
