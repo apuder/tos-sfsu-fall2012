@@ -275,6 +275,7 @@ void init_ne2k_driver();
 void init_ne2k_test();
 void ne_test_transmit();
 void ne_config(char * params);
+void process_incoming_packet(void * data, int len);
 
 /*=====>>> shell.c <<<===================================================*/
 
