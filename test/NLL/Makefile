@@ -13,16 +13,17 @@ LD_OPT = -m elf_i386
 
 LIB = -lpcap
 OBJ_DIR = objects
-#SRC_DIR = ../../kernel
+SRC_DIR = ../../kernel
 
 _OBJ = linux_ver.o arp.o ip.o eth.o udp.o
 OBJ = $(patsubst %,$(OBJ_DIR)/%,$(_OBJ))
 
-#_SRC = arp.c ip.c eth.c udp.c
-#SRC  = $(patsubst %,$(SRC_DIR)/%,$(_SRC))
+_SRC = arp.c ip.c eth.c udp.c
+SRC  = $(patsubst %,$(SRC_DIR)/%,$(_SRC))
 
 
-$(OBJ_DIR)/%.o: %.c 
+
+$(OBJ_DIR)/%.o:%.c
 	$(CC) $(CC_OPT) -DNO_TOS -c -o $@ $< $(CFLAGS)
 
 nll: $(OBJ)

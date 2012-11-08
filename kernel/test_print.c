@@ -4,8 +4,9 @@
 #include <nll.h>
 #include <kernel.h>
 
-void print_arp(ARP *pkt, u_int_t len)
+void print_arp(ARP *pkt,u_int_t len)
  {
+      
     kprintf("\n###############################################################\n");
     kprintf("\nARP Header\n");
     kprintf(" |-ARP Packet Total Length   : %d  Bytes(Size of Packet)\n", len);
@@ -56,7 +57,7 @@ void print_ip_header(IP *ip_pkt)
   }
 
 
-void print_udp_header(UDP *ud, u_char_t *src,u_char_t *dst)
+void print_udp_header(UDP *ud)
   {
 	
     kprintf("\n");
@@ -65,7 +66,6 @@ void print_udp_header(UDP *ud, u_char_t *src,u_char_t *dst)
     kprintf("   |-Destination Port           : %u\n",ntohs_tos(ud->dst_port));
     kprintf("   |-Length                     : %u\n",ntohs_tos(ud->len));
 	kprintf("   |-UDP checksum (optional)    : %04x\n",ntohs_tos(ud->checksum));
-    kprintf("   |-Computed UDP checksum      : %04x\n",ntohs_tos(udp_checksum(ud,src,dst)));;
 	}
 
 void print_packet(void *packet,u_int_t len)
@@ -80,4 +80,59 @@ void print_packet(void *packet,u_int_t len)
     }
    kprintf("\n");
 }
+
+
+void print_udp_data(UDP *ud)
+ {
+	int i , j;
+
+ 	 u_char_t *buf = ud->payload;
+	 u_int_t data_length = (ntohs_tos(ud->len)-UDP_HEAD_MIN_LEN);
+	 kprintf("%d",data_length);
+
+	 kprintf("\n###################################################################\n");
+	 for(i=0 ; i < data_length ; i++)
+		  {
+			  if( i!=0 && i%16==0)   //if one line of hex printing is complete...
+				  {
+				  	  kprintf( "         ");
+					  for(j=i-16 ; j<i ; j++)
+					  {
+						  if(buf[j]>=32 && buf[j]<=128)
+							  kprintf("%c",(u_char_t)buf[j]); //if its a number or alphabet
+
+						  else kprintf("."); //otherwise print a dot
+					  }
+					  kprintf( "\n");
+				  }
+
+				  if(i%16==0) kprintf("   ");
+				  kprintf(" %02X",(u_int_t)buf[i]);
+
+				  if( i==data_length-1)  //print the last spaces
+				  {
+					  for(j=0;j<15-i%16;j++)
+					  {
+						  kprintf("   "); //extra spaces
+					  }
+
+					  kprintf("         ");
+
+					  for(j=i-i%16 ; j<=i ; j++)
+					  {
+						  if(buf[j]>=32 && buf[j]<=128)
+						  {
+							  kprintf("%c",(u_char_t)buf[j]);
+						  }
+						  else
+						  {
+							  kprintf(".");
+						  }
+					  }
+
+					  kprintf("\n" );
+				  }
+			  }
+		  }
+
 #endif

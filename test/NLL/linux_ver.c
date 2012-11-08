@@ -20,13 +20,13 @@ IP ip_header;
 ETH ether_header;
 UDP udp;
 
-u_char_t *srip[4];
-u_char_t *dip[4];
-u_char_t *smask[4];
+u_char_t srip[4]={0,0,0,0};
+u_char_t dip[4]={0,0,0,0};
+//u_char_t smask[4];
 
 
-u_char_t dest_ip[4] = 	{192,168,1,254};
-u_char_t h_ip[4] = 	{192,168,1,79};
+u_char_t *dest_ip = "192.168.1.254";
+u_char_t *h_ip = 	"192.168.1.79";
 
 u_char_t host_mac[ETH_ADDR_LEN]={0xBC,0xAE,0x82,0x69,0xEB,0x28};
 
@@ -34,13 +34,13 @@ u_char_t eth_bcast[ETH_ADDR_LEN] = { 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF };
 
 int main()
 {
-		//u_char_t *arp_packet;
-		  //printf("what sup dude");
-		  //u_int_t x;
-		  //x = create_arp_packet(dest_ip,eth_bcast,h_ip,h_mac,ARP_REQUEST,&arp_packet);
-		  //printPacket(x,&arp_packet);
-  
-  pcap_if_t *alldevsp , *device;
+		u_char_t *data ="This is test message";
+  		udp_packet p;
+  if((inet_aton_tos(dest_ip,&dip)!= -1) && (inet_aton_tos(h_ip,&srip) != -1)){
+  	  	int x = create_udp_packet(45,26,&srip, &dip,20,(void *)data,&p);
+ 		printPacket(x, (u_char_t *) &p);}
+	
+  /*pcap_if_t *alldevsp , *device;
   pcap_t *handle; //Handle of the device that shall be sniffed
 	 
   char errbuf[100] , *devname , devs[100][100];
@@ -98,7 +98,7 @@ int main()
 
 
 
-   /*// Combine the Ethernet header and ARP request into a contiguous block.
+   // Combine the Ethernet header and ARP request into a contiguous block.
   unsigned char frame[ETH_HEAD_LEN + size];
   memcpy_tos(frame,&ethernet,ETH_HEAD_LEN);
   memcpy_tos(frame+ETH_HEAD_LEN,&arp_packet,size);
@@ -107,13 +107,13 @@ int main()
 
   if(!is_arp_request((void *)frame,(u_int_t)len,&arp_request_packet))
 	 print_arp_request(&arp_request_packet,(u_int_t)size);
-  	 print_all_arp(&arp_request_packet); */
+  	 print_all_arp(&arp_request_packet); 
 
   // Write the Ethernet frame to the interface.
       //if (pcap_inject(handle,&frame,len)==-1) {
          //exit(1);
       //}
- 
+ */
   return 0;
 }
  
@@ -140,7 +140,7 @@ void got_packet(u_char *args, const struct pcap_pkthdr *header, const  u_char *p
     	print_ethernet_header(&ether_header,(u_int_t)header->len);
     print_ip_header(&ip_header);
   	if(is_udp_packet((void *)packet,(u_int_t)header->len,&udp)){
-	  print_udp_header(&udp,&ip_header.src[0],&ip_header.dst[0]);
+	  print_udp_header(&udp);
       //printPacket((u_int_t)((udp.len)-UDP_HEAD_MIN_LEN),udp.payload);
 		  print_udp_data(&udp);
       }
@@ -158,9 +158,9 @@ void print_ethernet_header(ETH *ether, u_int_t len)
 }
 
 
-void print_arp(ARP *pkt, u_int_t len)
+void print_arp(ARP *pkt,u_int_t len)
 {
-
+  	
     printf("\n###############################################################\n");
  
     printf("\nARP Header\n");
@@ -179,8 +179,6 @@ void print_ip_header(IP *ip_pkt)
 {	
     unsigned short ipheader_len  = ip_pkt->hdr_len*4;
   
-    //unsigned short checksum = ip_pkt ->ip_chksum;
-    //ip_pkt ->ip_chksum = 0;
     
     printf("\n");
     printf("IP Header\n");
@@ -201,7 +199,7 @@ void print_ip_header(IP *ip_pkt)
   
   }		
 
- void print_udp_header (UDP *ud,u_char_t *src,u_char_t *dst)
+ void print_udp_header (UDP *ud)
   {
 
     printf("\n");
@@ -209,9 +207,8 @@ void print_ip_header(IP *ip_pkt)
     printf("   |-Source Port                : %u\n",ntohs_tos(ud->src_port));
     printf("   |-Destination Port           : %u\n",ntohs_tos(ud->dst_port));
     printf("   |-Length                     : %u\n",ntohs_tos(ud->len));
-	printf("   |-UDP checksum (optional)    : %#04X\n",ntohs_tos(ud->checksum));
-    printf("   |-Computed UDP checksum      : %#04X\n",ntohs_tos(udp_checksum(ud,src,dst)));
-
+    printf("   |-UDP checksum (optional)    : %#04X\n",ntohs_tos(ud->checksum));
+ 
   }
   
  void print_udp_data(UDP *ud)
@@ -273,7 +270,9 @@ void print_ip_header(IP *ip_pkt)
 	
   void print_all_arp(ARP *arp)
     {
-      printf("\n###############################################################\n");
+	
+
+	printf("\n###############################################################\n");
  
     printf("\nARP Header\n");
     printf("   |-Hardware type             : %x\n",arp->hard_type);
