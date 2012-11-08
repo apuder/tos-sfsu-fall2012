@@ -913,7 +913,7 @@ void ne_config(char * params) {
 }
 
 void process_incoming_packet(void * data, int len) {
-    static int count = 0;
+    kprintf("Processing incoming packet (%d bytes)...\n", len);
 
     ARP arp_packet;
 
@@ -962,17 +962,11 @@ void process_incoming_packet(void * data, int len) {
         // case 3b - UPD packet
         UDP udp_packet;
         if (is_udp_packet(data, len, &udp_packet) == TRUE) {
-            unsigned int i = 0;
-            unsigned char * ptr = (unsigned char *) udp_packet.payload;
-            for (i = 0; i < udp_packet.len; i++, ptr++) {
-                kprintf("%c", *ptr);
-            }
+            print_udp_header(&udp_packet);
+            print_udp_data(&udp_packet);
             return;
         }
     }
-
-    // case 4 - UNKNOWN packetﬁ
-    kprintf("%d) UNKNOWN PACKET RECEIVED\n", ++count);
 }
 
 /*-------------------------------------------------------------------*\
