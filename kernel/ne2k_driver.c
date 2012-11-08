@@ -26,7 +26,7 @@ typedef unsigned short gid_t;
 #define NE_BUFFER_START_PAGE 0x40
 #define NE_BUFFER_STOP_PAGE 0x4000
 
-// Card config
+// Card configuration parameters
 #define NE_RX_PAGE_START 0x46
 #define NE_RX_PAGE_BNDRY 0x46
 #define NE_RX_PAGE_STOP  0x80
@@ -227,9 +227,13 @@ typedef struct dpc {
     int flags;
 };
 
-typedef struct event {
-};
+typedef unsigned int dev_t;
+struct dpc *dpc_queue_tail;
+struct dpc *dpc_queue_head;
 
+/**
+ * Linked list used as data buffer
+ */
 typedef struct pbuf {
     struct pbuf *next;
     unsigned short flags;
@@ -240,12 +244,9 @@ typedef struct pbuf {
     int size; // Allocated size of buffer
 } pbuf;
 
-typedef unsigned int dev_t;
-struct dpc *dpc_queue_tail;
-struct dpc *dpc_queue_head;
-
-// NE2000 NIC status
-
+/**
+ * NE2000 data
+ */
 struct ne {
     dev_t devno; // Device number
     unsigned char mac_addr[6]; // MAC address
@@ -263,12 +264,10 @@ struct ne {
     unsigned short rx_page_start; // Start of receive ring
     unsigned short rx_page_stop; // End of receive ring
     unsigned char next_pkt; // Next unread received packet
-    struct event rdc; // Remote DMA completed event
-    struct event ptx; // Packet transmitted event
+    // struct event rdc; // Remote DMA completed event
+    // struct event ptx; // Packet transmitted event
     // struct mutex txlock;               // Transmit lock
 };
-
-struct netstats *netstats;
 
 static void ne_readmem(struct ne *ne, unsigned short src, char *dst, unsigned short len) {
 
@@ -714,15 +713,13 @@ int ne_setup(struct ne *ne) {
 void ne2k_driver_notifier(PROCESS self, PARAM param) {
     // NE2K_Message msg;
     while (1) {
-        //        kprintf("Waiting for IRQ...\n");
+        // kprintf("Waiting for IRQ...\n");
         outportb(__ne->nic_addr + NE_P0_IMR, 0x1B);
         wait_for_interrupt(NE2K_IRQ);
         outportb(__ne->nic_addr + NE_P0_IMR, 0);
-        //        kprintf("Got an IRQ!\n");
+        // kprintf("Got an IRQ!\n");
         ne_dpc(__ne);
-
     }
-
 }
 
 void ne2k_driver_process(PROCESS self, PARAM param) {
@@ -919,11 +916,14 @@ void process_incoming_packet(void * data, int len) {
     static int count = 0;
 
     ARP arp_packet;
+
+    // case 1 - ARP reply
     if (is_arp_reply(data, len, &arp_packet) == TRUE) {
         print_arp(&arp_packet, len);
-
+        return;
     }
 
+    // case 2 - ARP request
     if (is_arp_request(data, len, &arp_packet) == TRUE) {
         unsigned char dst_mac[6] = {
             arp_packet.ip_source[0], arp_packet.ip_source[1], arp_packet.ip_source[2],
@@ -942,9 +942,13 @@ void process_incoming_packet(void * data, int len) {
         return;
     }
 
+    // case 3 - IP packet
     IP ip_packet;
     if (is_ip_packet(data, len, &ip_packet) == TRUE) {
 
+        // kprintf("dst=%d.%d.%d.%d\n", ip_packet.dst[0], ip_packet.dst[1], ip_packet.dst[2], ip_packet.dst[3]);
+
+        // case 3a - IP packet - not to us
         if (ip_packet.dst[0] != __ne->ip[0]
                 || ip_packet.dst[1] != __ne->ip[1]
                 || ip_packet.dst[2] != __ne->ip[2]
@@ -954,6 +958,8 @@ void process_incoming_packet(void * data, int len) {
         }
 
         kprintf("OUR IP!\n");
+
+        // case 3b - UPD packet
         UDP udp_packet;
         if (is_udp_packet(data, len, &udp_packet) == TRUE) {
             unsigned int i = 0;
@@ -965,6 +971,7 @@ void process_incoming_packet(void * data, int len) {
         }
     }
 
+    // case 4 - UNKNOWN packetﬁ
     kprintf("%d) UNKNOWN PACKET RECEIVED\n", ++count);
 }
 
