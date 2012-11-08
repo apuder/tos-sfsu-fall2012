@@ -208,12 +208,15 @@ typedef struct
 
 
  BOOL is_arp_request(void *buffer, u_int_t len,ARP *arp_packet);
+ //BOOL is_arp_request(void *buffer, u_int_t len,pbuf *arp_buffer);
+ //BOOL is_arp_reply(void *buffer, u_int_t len,pbuf *arp_buffer);
  BOOL is_arp_reply(void *buffer, u_int_t len,ARP *arp_packet);
  void arp_add_cache(u_char_t *ip, u_char_t *mac);
  BOOL arp_ip_to_mac(u_char_t *eth_addr, u_char_t *ip_addr);
  u_int_t create_arp_packet(u_char_t *ip_to, u_char_t *eth_to,u_char_t *host_ip, \
 		 u_char_t *host_mac,u_int16_t arp_op , ARP *packet);
  void print_arp(ARP *pkt, u_int_t len);
+ //void print_arp(pbuf *arp_buffer);
 
  /*************************** UDP includes *********************/
 
@@ -248,7 +251,7 @@ typedef struct {
      				u_char_t *dst_ip,u_int_t payload_len,void *payload,udp_packet *packet);
  int create_udp_hr(u_int16_t src_port,u_int16_t dst_port,u_int_t payload_len,void *payload,UDP *ud);
  BOOL is_udp_packet(void *buffer,u_int_t len, UDP *packet);
- void print_udp_header (UDP *ud,u_char_t *src,u_char_t *dst);
+ void print_udp_header (UDP *ud);
  void print_udp_data(UDP *ud);
 
 #endif
