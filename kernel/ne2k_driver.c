@@ -1011,10 +1011,7 @@ void process_incoming_packet(void * data, int len) {
 
     // case 2 - ARP request
     if (is_arp_request(data, len, &arp_packet) == TRUE) {
-        unsigned char dst_mac[6] = {
-            arp_packet.eth_source[0], arp_packet.eth_source[1], arp_packet.eth_source[2],
-            arp_packet.eth_source[3], arp_packet.eth_source[4], arp_packet.eth_source[5],
-        };
+        ARP arp_reply;
         u_char_t src_ip[4] = {__ne->ip[0], __ne->ip[1], __ne->ip[2], __ne->ip[3]};
         u_char_t src_mac[6] = {
             __ne->mac_addr[0], __ne->mac_addr[1], __ne->mac_addr[2],
@@ -1022,8 +1019,8 @@ void process_incoming_packet(void * data, int len) {
         };
         unsigned int arp_len = create_arp_packet(
                 arp_packet.ip_source, arp_packet.eth_source,
-                src_ip, src_mac, ARP_REPLY, &arp_packet);
-        ne_send_ethernet((unsigned char *) &dst_mac, (void *) &arp_packet, arp_len, ETHERTYPE_ARP);
+                src_ip, src_mac, ARP_REPLY, &arp_reply);
+        ne_send_ethernet((unsigned char *) arp_reply.eth_dest, (void *) &arp_reply, arp_len, ETHERTYPE_ARP);
 
         return;
     }
