@@ -111,6 +111,11 @@ void process_command(char* command) {
         return;
     }
 
+    if (is_command(command, "sendudp")) {
+        ne_send_udp(command + 8);
+        return;
+    }
+
     if (is_command(command, "send")) {
         ne_test_transmit();
         return;
