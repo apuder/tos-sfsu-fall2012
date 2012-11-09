@@ -11,11 +11,12 @@
 #include <nll.h>
 
 void got_packet(u_char *args, const struct pcap_pkthdr *header, const u_char *packet);
-void printPacket(u_int_t len, const u_char_t * packet);
-void print_all_arp(ARP *arp);
-
-ARP arp_request_packet;
-ARP arp_reply_packet;
+//void print_all_arp(ARP *arp);
+void print_all_arp(pbuf *arp);
+//ARP arp_request_packet;
+//ARP arp_reply_packet;
+pbuf arp_packet;
+//pbuf arp_reply_packet;
 IP ip_header;
 ETH ether_header;
 UDP udp;
@@ -25,8 +26,8 @@ u_char_t dip[4]={0,0,0,0};
 //u_char_t smask[4];
 
 
-u_char_t *dest_ip = "192.168.1.254";
-u_char_t *h_ip = 	"192.168.1.79";
+const char *dest_ip = "192.168.1.254";
+const char *h_ip = 	"192.168.1.79";
 
 u_char_t host_mac[ETH_ADDR_LEN]={0xBC,0xAE,0x82,0x69,0xEB,0x28};
 
@@ -34,13 +35,13 @@ u_char_t eth_bcast[ETH_ADDR_LEN] = { 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF };
 
 int main()
 {
-		u_char_t *data ="This is test message";
+		/*u_char_t *data ="This is test message";
   		udp_packet p;
   if((inet_aton_tos(dest_ip,&dip)!= -1) && (inet_aton_tos(h_ip,&srip) != -1)){
   	  	int x = create_udp_packet(45,26,&srip, &dip,20,(void *)data,&p);
- 		printPacket(x, (u_char_t *) &p);}
+ 		printPacket(x, (u_char_t *) &p);} */
 	
-  /*pcap_if_t *alldevsp , *device;
+  pcap_if_t *alldevsp , *device;
   pcap_t *handle; //Handle of the device that shall be sniffed
 	 
   char errbuf[100] , *devname , devs[100][100];
@@ -97,41 +98,30 @@ int main()
   pcap_loop(handle, -1, got_packet, (u_char *)&count_t);
 
 
-
-   // Combine the Ethernet header and ARP request into a contiguous block.
-  unsigned char frame[ETH_HEAD_LEN + size];
-  memcpy_tos(frame,&ethernet,ETH_HEAD_LEN);
-  memcpy_tos(frame+ETH_HEAD_LEN,&arp_packet,size);
-
-   int len = ETH_HEAD_LEN + size;
-
-  if(!is_arp_request((void *)frame,(u_int_t)len,&arp_request_packet))
-	 print_arp_request(&arp_request_packet,(u_int_t)size);
-  	 print_all_arp(&arp_request_packet); 
-
-  // Write the Ethernet frame to the interface.
-      //if (pcap_inject(handle,&frame,len)==-1) {
-         //exit(1);
-      //}
- */
   return 0;
 }
  
 void got_packet(u_char *args, const struct pcap_pkthdr *header, const  u_char *packet)
 {
 
-  if(is_arp_request((void *)packet,(u_int_t)header->len,&arp_request_packet))
+  if(is_arp_request((void *)packet,(u_int_t)header->len,&arp_packet))
   {
-     print_arp(&arp_request_packet,(u_int_t)header->len);
-     print_all_arp(&arp_request_packet);
+     //print_arp(&arp_request_packet,(u_int_t)header->len);
+     //print_all_arp(&arp_request_packet);
      //printPacket((u_int_t)header->len,packet);
+	print_arp(&arp_packet);
+	print_all_arp(&arp_packet);
+	printPacket(&arp_packet);
 
   }
       
- else if(is_arp_reply((void *)packet,(u_int_t)header->len,&arp_reply_packet))
+ else if(is_arp_reply((void *)packet,(u_int_t)header->len,&arp_packet))
   {
-    print_arp(&arp_reply_packet,(u_int_t)header->len);
-    print_all_arp(&arp_reply_packet);
+    //print_arp(&arp_reply_packet,(u_int_t)header->len);
+    //print_all_arp(&arp_reply_packet);
+	print_arp(&arp_packet);
+	print_all_arp(&arp_packet);
+	printPacket(&arp_packet);
 }
   else if(is_ip_packet((void *)packet,(u_int_t)header->len,&ip_header))
   {
@@ -158,14 +148,16 @@ void print_ethernet_header(ETH *ether, u_int_t len)
 }
 
 
-void print_arp(ARP *pkt,u_int_t len)
+void print_arp(pbuf *buffer)
 {
-  	
+	ARP *pkt = (ARP *)(buffer->payload);
+  	int len = buffer->tot_len;
+  
     printf("\n###############################################################\n");
  
     printf("\nARP Header\n");
     printf("   |-ARP Packet Total Length   : %u  Bytes(Size of Packet)\n",len);
-    printf("   |-ARP Operation             : %s\n",pkt->op == ARP_REQUEST ? "ARP REQUEST" : "ARP REPLY");
+    printf("   |-ARP Operation             : %s\n",ntohs_tos(pkt->op) == ARP_REQUEST ? "ARP REQUEST" : "ARP REPLY");
     printf("   |-Sender MAC Address        : %02x:%02x:%02x:%02x:%02x:%02x\n",pkt->eth_source[0],pkt->eth_source[1],\
     										pkt->eth_source[2],pkt->eth_source[3],pkt->eth_source[4],pkt->eth_source[5]);
     printf("   |-Sender IP Address         : %d.%d.%d.%d\n",pkt->ip_source[0],pkt->ip_source[1], \
@@ -268,18 +260,19 @@ void print_ip_header(IP *ip_pkt)
 
 
 	
-  void print_all_arp(ARP *arp)
+  void print_all_arp(pbuf *buffer)
     {
-	
+
+	  ARP *arp = (ARP *)(buffer->payload);
 
 	printf("\n###############################################################\n");
  
     printf("\nARP Header\n");
-    printf("   |-Hardware type             : %x\n",arp->hard_type);
-    printf("   |-Protocol type             : %x\n",arp->proto_type);
+    printf("   |-Hardware type             : %x\n",ntohs_tos(arp->hard_type));
+    printf("   |-Protocol type             : %x\n",ntohs_tos(arp->proto_type));
     printf("   |-Hardware size             : %x\n",arp->hard_size);
     printf("   |-Protocol size             : %x\n",arp->proto_size);
-    printf("   |-Operation                 : %x\n",arp->op);
+    printf("   |-Operation                 : %x\n",ntohs_tos(arp->op));
     printf("   |-Source MAC Address        : %x%x%x%x%x%x\n",arp->eth_source[0],arp->eth_source[1], \
 	   					arp->eth_source[2],arp->eth_source[3],arp->eth_source[4],arp->eth_source[5]);
     printf("   |-Source IP Address         : %x%x%x%x\n",arp->ip_source[0],arp->ip_source[1], \
@@ -290,18 +283,14 @@ void print_ip_header(IP *ip_pkt)
            						arp->ip_dest[2],arp->ip_dest[3]);
     }
 
-  void printPacket(u_int_t len, const u_char_t *packet){
+/*  void printPacket(void *packet , u_int_t len)
+{
+	   int i=0;
+		u_char_t *pkt = (u_char_t *)packet;
+		for (i=0; i<len; i++){
 
-   int i=0;
-		   //*counter = (int *)t;
-
-   //printf("Packet Count: %d\n", ++(*counter));
-   //printf("Received Packet Size: %d\n", len);
-   //printf("Payload:\n");
-	for (i=0; i<len; i++){
-
-      //if ( isprint(packet[i]) ) /* If it is a printable character, print it */
-          printf("%02x:", packet[i]);
+      //if ( isprint(packet[i]) ) 
+          printf("%02x:", pkt[i]);
       //else
          //printf(". ");
 
@@ -311,5 +300,25 @@ void print_ip_header(IP *ip_pkt)
    printf("\n");
    printf("%d\n",len);
    return;
-  }
+  }*/
+
+void printPacket(pbuf *buffer)
+{
+	   int i=0;
+		u_char_t *pkt = (u_char_t *)(buffer->payload);
+  		int len = buffer->tot_len;
+		for (i=0; i<len; i++){
+
+      //if ( isprint(packet[i]) ) 
+          printf("%02x:", pkt[i]);
+      //else
+         //printf(". ");
+
+       if((i%16 == 0 && i!=0)|| i==len-1)
+         printf("\n");
+    }
+   printf("\n");
+   printf("%d\n",len);
+   return;
+}
 #endif

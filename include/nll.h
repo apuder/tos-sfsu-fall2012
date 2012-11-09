@@ -135,6 +135,8 @@ INLINE BOOL is_space(u_char_t c)
 BOOL is_ethernet_header(void *buffer , u_int_t len, ETH *ether);
 void print_ethernet_header(ETH *ether,u_int_t len);
 
+//void printPacket(void *packet,u_int_t len);
+
 
 
 /*************************** ip includes ****************************************/
@@ -207,17 +209,32 @@ typedef struct
   }ARP;
 
 
- BOOL is_arp_request(void *buffer, u_int_t len,ARP *arp_packet);
- //BOOL is_arp_request(void *buffer, u_int_t len,pbuf *arp_buffer);
- //BOOL is_arp_reply(void *buffer, u_int_t len,pbuf *arp_buffer);
- BOOL is_arp_reply(void *buffer, u_int_t len,ARP *arp_packet);
- void arp_add_cache(u_char_t *ip, u_char_t *mac);
- BOOL arp_ip_to_mac(u_char_t *eth_addr, u_char_t *ip_addr);
- u_int_t create_arp_packet(u_char_t *ip_to, u_char_t *eth_to,u_char_t *host_ip, \
+ /*
+#ifdef NO_TOS
+	typedef struct pbuf {
+    	struct pbuf *next;
+    	unsigned short flags;
+    	unsigned short ref;
+    	void *payload;
+    	int tot_len; // Total length of buffer + additionally chained buffers.
+    	int len; // Length of this buffer.
+    	int size; // Allocated size of buffer
+	} pbuf;
+ 	BOOL is_arp_request(void *buffer, u_int_t len,pbuf *arp_buffer);
+ 	BOOL is_arp_reply(void *buffer, u_int_t len,pbuf *arp_buffer);
+	void print_arp(pbuf *arp_buffer);
+	u_int_t create_arp_packet(u_char_t *ip_to, u_char_t *eth_to,u_char_t *host_ip, \
+		 u_char_t *host_mac,u_int16_t arp_op , pbuf *packet);
+	void printPacket(pbuf *buffer);
+#endif */
+BOOL is_arp_request(void *buffer, u_int_t len,ARP *arp_packet);
+BOOL is_arp_reply(void *buffer, u_int_t len,ARP *arp_packet);
+void arp_add_cache(u_char_t *ip, u_char_t *mac);
+BOOL arp_ip_to_mac(u_char_t *eth_addr, u_char_t *ip_addr);
+u_int_t create_arp_packet(u_char_t *ip_to, u_char_t *eth_to,u_char_t *host_ip, \
 		 u_char_t *host_mac,u_int16_t arp_op , ARP *packet);
- void print_arp(ARP *pkt, u_int_t len);
- //void print_arp(pbuf *arp_buffer);
-
+void print_arp(ARP *pkt, u_int_t len);
+ 
  /*************************** UDP includes *********************/
 
 #define UDP_HEAD_MIN_LEN	8

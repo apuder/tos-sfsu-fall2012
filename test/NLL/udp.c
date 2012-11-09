@@ -9,23 +9,20 @@
 BOOL is_udp_packet(void *buffer,u_int_t len,UDP *packet)
 {
 	IP ip_header;
-	
-	int payload_len = (len - (ETH_HEAD_LEN + IP_HEAD_MIN_LEN + UDP_HEAD_MIN_LEN));
+		
 	if(is_ip_packet(buffer,len,&ip_header))
    	{
 		if(ip_header.protocol != IP_PROTO_UDP)
 			return FALSE;
 		u_char_t *udpheader = (u_char_t *)(buffer + ETH_HEAD_LEN + IP_HEAD_MIN_LEN);
+		int udp_payload_len = ((ntohs_tos(ip_header.len))-(IP_HEAD_MIN_LEN + UDP_HEAD_MIN_LEN));
 		packet->src_port = *((u_int16_t *)(udpheader));
 		packet->dst_port = *((u_int16_t *)(udpheader + 2));
 		packet->len = *((u_int16_t *)(udpheader + 4));
 		packet->checksum = *((u_int16_t *)(udpheader + 6));
-		memcpy_tos(packet->payload,(u_char_t *)(buffer + ETH_HEAD_LEN + IP_HEAD_MIN_LEN + UDP_HEAD_MIN_LEN),payload_len);
-
-		#ifdef NO_TOS
-             printPacket(payload_len,&packet->payload);
-		#endif
-		return TRUE;
+		memcpy_tos(packet->payload,(u_char_t *)(udpheader + UDP_HEAD_MIN_LEN),udp_payload_len);
+	
+		 return TRUE;
 	}
 	else
 		return FALSE;

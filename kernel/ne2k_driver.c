@@ -423,7 +423,7 @@ void ne_receive(struct ne *ne) {
     ne_setup(__ne);
 
     // show what we got
-    display_packet(p->payload, p->len);
+    //display_packet(p->payload, p->len);
 
     process_incoming_packet(p->payload, p->len);
 }
@@ -926,8 +926,8 @@ void process_incoming_packet(void * data, int len) {
     // case 2 - ARP request
     if (is_arp_request(data, len, &arp_packet) == TRUE) {
         unsigned char dst_mac[6] = {
-            arp_packet.ip_source[0], arp_packet.ip_source[1], arp_packet.ip_source[2],
-            arp_packet.ip_source[3], arp_packet.ip_source[4], arp_packet.ip_source[5],
+            arp_packet.eth_source[0], arp_packet.eth_source[1], arp_packet.eth_source[2],
+            arp_packet.eth_source[3], arp_packet.eth_source[4], arp_packet.eth_source[5],
         };
         u_char_t src_ip[4] = {__ne->ip[0], __ne->ip[1], __ne->ip[2], __ne->ip[3]};
         u_char_t src_mac[6] = {
@@ -935,8 +935,7 @@ void process_incoming_packet(void * data, int len) {
             __ne->mac_addr[3], __ne->mac_addr[4], __ne->mac_addr[5]
         };
         unsigned int arp_len = create_arp_packet(
-                arp_packet.ip_source, arp_packet.eth_source,
-                src_ip, src_mac, ARP_REPLY, &arp_packet);
+                arp_packet.ip_source,dst_mac, src_ip,src_mac,ARP_REPLY, &arp_packet);
         ne_send_ethernet((unsigned char *) &dst_mac, (void *) &arp_packet, arp_len, ETHERTYPE_ARP);
 
         return;
@@ -958,7 +957,7 @@ void process_incoming_packet(void * data, int len) {
         }
 
         kprintf("OUR IP!\n");
-
+	  	
         // case 3b - UPD packet
         UDP udp_packet;
         if (is_udp_packet(data, len, &udp_packet) == TRUE) {

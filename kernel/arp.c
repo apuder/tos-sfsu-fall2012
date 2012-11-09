@@ -20,8 +20,7 @@ static struct {
 BOOL is_arp_request(void *buffer, u_int_t len, ARP *arp_pkt) 
 {
 
-  	//ARP arp_pkt;
-  	u_char_t *buf = (u_char_t *)buffer;
+  u_char_t *buf = (u_char_t *)buffer;
   
 
   	if (ntohs_tos (*((u_int16_t *)(buf + 2*ETH_ADDR_LEN))) != ETHERTYPE_ARP)
@@ -38,17 +37,12 @@ BOOL is_arp_request(void *buffer, u_int_t len, ARP *arp_pkt)
   	memcpy_tos(arp_pkt->ip_source, (u_char_t *) (arpheader + 14), IP_LEN);
   	memcpy_tos(arp_pkt->eth_dest, (u_char_t *) (arpheader + 18), ETH_ADDR_LEN);
   	memcpy_tos(arp_pkt->ip_dest, (u_char_t *) (arpheader + 24), IP_LEN);
-	#ifdef NO_TOS
-  		//printf("   |-Hardware type             : %x\n",arp_pkt.hard_type);
-  		//printf("   |-Protocol type             : %x\n",arp_pkt.proto_type);
-	#endif
-  	
-  	return TRUE;
-  }
+    	return TRUE;
+}
 
-BOOL is_arp_reply(void *buffer, u_int_t len, ARP *arp_pkt)
+  BOOL is_arp_reply(void *buffer, u_int_t len, ARP *arp_pkt)
 {
-	//ARP arp_pkt;
+	
   	u_char_t *buf = (u_char_t *)buffer;
   
 
@@ -68,7 +62,10 @@ BOOL is_arp_reply(void *buffer, u_int_t len, ARP *arp_pkt)
   	memcpy_tos(arp_pkt->ip_dest, (u_char_t *) (arpheader + 24), IP_LEN);
 
   	return TRUE;
-}
+  }
+
+
+  	
 
 void arp_add_cache(u_char_t *ip, u_char_t *mac)
 {
@@ -119,6 +116,88 @@ u_int_t create_arp_packet(u_char_t *ip_to, u_char_t *eth_to, u_char_t *host_ip, 
     return (sizeof(ARP));
 }
 
+
+/*#ifdef NO_TOS
+  BOOL is_arp_request(void *buffer, u_int_t len, pbuf *arp_buffer) 
+	{
+	ARP arp_pkt;
+  	u_char_t *buf = (u_char_t *)buffer;
+  
+
+  	if (ntohs_tos (*((u_int16_t *)(buf + 2*ETH_ADDR_LEN))) != ETHERTYPE_ARP)
+            return FALSE;
+    u_char_t *arpheader = (u_char_t *)(buf + ETH_HEAD_LEN);
+    if (ntohs_tos(*((u_int16_t *) (arpheader + 6))) != ARP_REQUEST)
+            return FALSE;
+  	arp_pkt.hard_type = *((u_int16_t *) (arpheader));
+  	arp_pkt.proto_type = *((u_int16_t *) (arpheader + 2));
+  	arp_pkt.hard_size = *((u_char_t *) (arpheader + 4));
+  	arp_pkt.proto_size = *((u_char_t *) (arpheader + 5));
+  	arp_pkt.op = *((u_int16_t *) (arpheader + 6));
+  	memcpy_tos(arp_pkt.eth_source, (u_char_t *) (arpheader + 8), ETH_ADDR_LEN);
+  	memcpy_tos(arp_pkt.ip_source, (u_char_t *) (arpheader + 14), IP_LEN);
+  	memcpy_tos(arp_pkt.eth_dest, (u_char_t *) (arpheader + 18), ETH_ADDR_LEN);
+  	memcpy_tos(arp_pkt.ip_dest, (u_char_t *) (arpheader + 24), IP_LEN);
+
+	arp_buffer->next = NULL;
+	arp_buffer->payload = (void *)&arp_pkt;
+	arp_buffer->len = sizeof(ARP);
+	arp_buffer->tot_len = arp_buffer->len;
+	  
+		return TRUE;
+	}
+
+BOOL is_arp_reply(void *buffer, u_int_t len, pbuf *arp_buffer)
+{
+	ARP arp_pkt;
+  	u_char_t *buf = (u_char_t *)buffer;
+  
+
+  	if (ntohs_tos (*((u_int16_t *)(buf + 2*ETH_ADDR_LEN))) != ETHERTYPE_ARP)
+            return FALSE;
+    u_char_t *arpheader = (u_char_t *)(buf + ETH_HEAD_LEN);
+    if (ntohs_tos(*((u_int16_t *) (arpheader + 6))) != ARP_REPLY)
+            return FALSE;
+  	arp_pkt.hard_type = *((u_int16_t *) (arpheader));
+  	arp_pkt.proto_type = *((u_int16_t *) (arpheader + 2));
+  	arp_pkt.hard_size = *((u_char_t *) (arpheader + 4));
+  	arp_pkt.proto_size = *((u_char_t *) (arpheader + 5));
+  	arp_pkt.op = *((u_int16_t *) (arpheader + 6));
+  	memcpy_tos(arp_pkt.eth_source, (u_char_t *) (arpheader + 8), ETH_ADDR_LEN);
+  	memcpy_tos(arp_pkt.ip_source, (u_char_t *) (arpheader + 14), IP_LEN);
+  	memcpy_tos(arp_pkt.eth_dest, (u_char_t *) (arpheader + 18), ETH_ADDR_LEN);
+  	memcpy_tos(arp_pkt.ip_dest, (u_char_t *) (arpheader + 24), IP_LEN);
+
+  	arp_buffer->next = NULL;
+	arp_buffer->payload = (void *)&arp_pkt;
+	arp_buffer->len = sizeof(ARP);
+	arp_buffer->tot_len = arp_buffer->len;
+
+  	return TRUE;
+  }
+
+u_int_t create_arp_packet(u_char_t *ip_to, u_char_t *eth_to, u_char_t *host_ip, \
+  u_char_t *host_mac, u_int16_t arp_op, pbuf *buffer) 
+{
+  	ARP packet;
+    packet.hard_type = htons_tos(ARPHRD_ETHER);
+    packet.proto_type = htons_tos(ETHERTYPE_IP);
+    packet.hard_size = ETH_ADDR_LEN;
+    packet.proto_size = IP_LEN;
+    packet.op = htons_tos(arp_op);
+    memcpy_tos(packet.eth_source, host_mac, ETH_ADDR_LEN);
+    memcpy_tos(packet.ip_source, host_ip, IP_LEN);
+    memcpy_tos(packet.eth_dest, eth_to, ETH_ADDR_LEN);
+    memcpy_tos(packet.ip_dest, ip_to, IP_LEN);
+
+  	buffer->next = NULL;
+  	buffer->payload = (void *)&packet;
+  	buffer->len = sizeof(ARP);
+  	buffer->tot_len = buffer->len;
+
+    return (buffer->tot_len);
+}
+#endif */
 #endif
 
 
