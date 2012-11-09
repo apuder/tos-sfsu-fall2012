@@ -779,10 +779,7 @@ void ne_test_transmit() {
     // print_arp(&arp_pkt, arp_len);
 
     ne_send_ethernet((unsigned char *) dst_mac, (void *) &arp_pkt, arp_len, ETHERTYPE_ARP);
-    // ne_send_ethernet(dst_mac, data, 42);
 }
-
-//void ne_send_ethernet(struct eth_addr dst, char * data, int len) {
 
 void ne_send_ethernet(unsigned char * dst, void * data, unsigned int len, unsigned short type) {
     if (NE_INTIALIZED != 1) {
@@ -796,8 +793,8 @@ void ne_send_ethernet(unsigned char * dst, void * data, unsigned int len, unsign
         // source MAC address
         __ne->mac_addr[0], __ne->mac_addr[1], __ne->mac_addr[2],
         __ne->mac_addr[3], __ne->mac_addr[4], __ne->mac_addr[5],
-        // type (hardcoded)
-        0x08, 0x06
+        // type
+        (type >> 8) & 0x00FF, type & 0x00FF
     };
 
     pbuf header_buffer, data_buffer;
@@ -814,6 +811,94 @@ void ne_send_ethernet(unsigned char * dst, void * data, unsigned int len, unsign
     header_buffer.size = (sizeof (unsigned int)); // Allocated size of buffer
 
     ne_transmit(&header_buffer);
+}
+
+int char2int(unsigned char c) {
+    switch (c) {
+        case '0':
+            return 0;
+        case '1':
+            return 1;
+        case '2':
+            return 2;
+        case '3':
+            return 3;
+        case '4':
+            return 4;
+        case '5':
+            return 5;
+        case '6':
+            return 6;
+        case '7':
+            return 7;
+        case '8':
+            return 8;
+        case '9':
+            return 9;
+        default:
+            return 0;
+    }
+}
+
+int ne_is_space(unsigned char c) {
+    return c == ' ' || c == '\0' || c == '\t';
+}
+
+int str2int(unsigned char * str) {
+    int result = 0;
+    while (!ne_is_space(*str)) {
+        result = result * 10 + char2int(*str);
+        str++;
+    }
+    return result;
+}
+
+void ne_send_udp(unsigned char * params) {
+
+    // first is the source port
+    u_int16_t src_port = (u_int16_t) str2int(params);
+    while (!ne_is_space((unsigned char) *params)) params++;
+    params++;
+
+    // second is the destination port
+    u_int16_t dst_port = (u_int16_t) str2int(params);
+    while (!ne_is_space((unsigned char) *params)) params++;
+    params++;
+
+    // third is the destination IP
+    u_int_t i = 0;
+    u_char_t ip[16];
+    u_char_t ip_bytes[4] = {0, 0, 0, 0};
+    while (!ne_is_space((unsigned char) *params)) {
+        ip[i] = *params;
+        i++;
+        params++;
+    }
+    ip[i] = '\0';
+    inet_aton_tos(ip, ip_bytes);
+
+    // fourth is payload
+    i = 0;
+    while (*(params + i) != '\0') i++;
+
+    // kprintf("SRC_PORT=%d DST_PORT=%d", src_port, dst_port);
+    // kprintf(" DST_IP=%d.%d.%d.%d", ip_bytes[0], ip_bytes[1], ip_bytes[2], ip_bytes[3]);
+    // kprintf(" LEN=%d\n", i);
+
+    ne_do_send_udp(src_port, dst_port, ip_bytes, i, params);
+}
+
+void ne_do_send_udp(u_int16_t sp, u_int16_t dp, u_char_t * dip, u_int_t len, void * payload) {
+    u_char_t sip[4] = {__ne->ip[0], __ne->ip[1], __ne->ip[2], __ne->ip[3]};
+    // TODO: REPLACE THIS WITH THE ACTUAL DST MAC
+    u_char_t dst_mac[6] = {0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF};
+    udp_packet packet;
+
+    // create the UDP packet
+    len = create_udp_packet(sp, dp, sip, dip, len, payload, &packet);
+
+    // prepare and send the ethernet packet
+    ne_send_ethernet(dst_mac, &packet, len, ETHERTYPE_IP);
 }
 
 int ne_is_command(char* s1, char* s2) {
@@ -913,7 +998,8 @@ void ne_config(char * params) {
 }
 
 void process_incoming_packet(void * data, int len) {
-    kprintf("Processing incoming packet (%d bytes)...\n", len);
+    if (NE_DEBUG)
+        kprintf("Processing incoming packet (%d bytes)...\n", len);
 
     ARP arp_packet;
 
@@ -925,18 +1011,16 @@ void process_incoming_packet(void * data, int len) {
 
     // case 2 - ARP request
     if (is_arp_request(data, len, &arp_packet) == TRUE) {
-        unsigned char dst_mac[6] = {
-            arp_packet.eth_source[0], arp_packet.eth_source[1], arp_packet.eth_source[2],
-            arp_packet.eth_source[3], arp_packet.eth_source[4], arp_packet.eth_source[5],
-        };
+        ARP arp_reply;
         u_char_t src_ip[4] = {__ne->ip[0], __ne->ip[1], __ne->ip[2], __ne->ip[3]};
         u_char_t src_mac[6] = {
             __ne->mac_addr[0], __ne->mac_addr[1], __ne->mac_addr[2],
             __ne->mac_addr[3], __ne->mac_addr[4], __ne->mac_addr[5]
         };
         unsigned int arp_len = create_arp_packet(
-                arp_packet.ip_source,dst_mac, src_ip,src_mac,ARP_REPLY, &arp_packet);
-        ne_send_ethernet((unsigned char *) &dst_mac, (void *) &arp_packet, arp_len, ETHERTYPE_ARP);
+                arp_packet.ip_source, arp_packet.eth_source,
+                src_ip, src_mac, ARP_REPLY, &arp_reply);
+        ne_send_ethernet((unsigned char *) arp_reply.eth_dest, (void *) &arp_reply, arp_len, ETHERTYPE_ARP);
 
         return;
     }
@@ -952,17 +1036,28 @@ void process_incoming_packet(void * data, int len) {
                 || ip_packet.dst[1] != __ne->ip[1]
                 || ip_packet.dst[2] != __ne->ip[2]
                 || ip_packet.dst[3] != __ne->ip[3]) {
-            kprintf("NOT OUR IP\n");
+            if (NE_DEBUG) {
+                kprintf("NOT OUR IP\n");
+            }
             return;
         }
 
+<<<<<<< HEAD
         kprintf("OUR IP!\n");
 	  	
+=======
+        if (NE_DEBUG) {
+            kprintf("OUR IP!\n");
+        }
+
+>>>>>>> 2289f8136e53b7577675d0f77b31d3e9a92149fa
         // case 3b - UPD packet
         UDP udp_packet;
         if (is_udp_packet(data, len, &udp_packet) == TRUE) {
-            print_udp_header(&udp_packet);
-            print_udp_data(&udp_packet);
+            if (NE_DEBUG) {
+                print_udp_header(&udp_packet);
+                print_udp_data(&udp_packet);
+            }
             return;
         }
     }
