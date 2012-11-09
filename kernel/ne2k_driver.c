@@ -1042,15 +1042,10 @@ void process_incoming_packet(void * data, int len) {
             return;
         }
 
-<<<<<<< HEAD
-        kprintf("OUR IP!\n");
-	  	
-=======
         if (NE_DEBUG) {
             kprintf("OUR IP!\n");
         }
 
->>>>>>> 2289f8136e53b7577675d0f77b31d3e9a92149fa
         // case 3b - UPD packet
         UDP udp_packet;
         if (is_udp_packet(data, len, &udp_packet) == TRUE) {
