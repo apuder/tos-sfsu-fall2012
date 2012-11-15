@@ -212,6 +212,7 @@ typedef struct
  //BOOL is_arp_reply(void *buffer, u_int_t len,pbuf *arp_buffer);
  BOOL is_arp_reply(void *buffer, u_int_t len,ARP *arp_packet);
  void arp_add_cache(u_char_t *ip, u_char_t *mac);
+ void show_arp_table();
  BOOL arp_ip_to_mac(u_char_t *eth_addr, u_char_t *ip_addr);
  u_int_t create_arp_packet(u_char_t *ip_to, u_char_t *eth_to,u_char_t *host_ip, \
 		 u_char_t *host_mac,u_int16_t arp_op , ARP *packet);
