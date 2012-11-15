@@ -12,6 +12,11 @@
 
 PORT ne2k_driver_port;
 
+typedef struct _NE_Message {
+    char* key_buffer;
+} NE_Message;
+
+
 struct ne *__ne;
 
 typedef unsigned short uid_t;
@@ -711,13 +716,12 @@ int ne_setup(struct ne *ne) {
 }
 
 void ne2k_driver_notifier(PROCESS self, PARAM param) {
-    // NE2K_Message msg;
+    NE2K_Driver_Message msg;
     while (1) {
-        // kprintf("Waiting for IRQ...\n");
         outportb(__ne->nic_addr + NE_P0_IMR, 0x1B);
         wait_for_interrupt(NE2K_IRQ);
         outportb(__ne->nic_addr + NE_P0_IMR, 0);
-        // kprintf("Got an IRQ!\n");
+        // message(ne2k_driver_port, &msg);
         ne_dpc(__ne);
     }
 }
@@ -729,31 +733,18 @@ void ne2k_driver_process(PROCESS self, PARAM param) {
     PORT ne2k_driver_notifier_port;
     PROCESS ne2k_driver_notifier_proc;
 
-    /*
-    char          key_buffer;
-    int           key_waiting;
-    PROCESS       client_proc;
-    Keyb_Message* client_msg;
-     */
-
-    ne2k_driver_notifier_port = create_process(ne2k_driver_notifier, 7, 0, "NE2K Driver Notifier");
+    ne2k_driver_notifier_port = create_process(ne2k_driver_notifier, 7, 0, "NE Notifier");
     ne2k_driver_notifier_proc = ne2k_driver_notifier_port->owner;
 
-    /*
-    client_proc = NULL;
-    client_msg = NULL;
-    key_buffer = '\0';
-    key_waiting = FALSE;
-     */
     while (1) {
         msg = (NE2K_Driver_Message*) receive(&sender_proc);
-        if (msg == NULL);
+        ne_dpc(__ne);
         reply(sender_proc);
     }
 }
 
 void ne_show_info(struct ne *ne) {
-    kprintf("IP=%d.%d.%d.%d MAC=%02x:%02x:%02x:%02x:%02x:%02x DEBUG_MODE=%d\n",
+    wprintf(shell_wnd_ptr, "IP=%d.%d.%d.%d\nMAC=%02x:%02x:%02x:%02x:%02x:%02x\nDEBUG_MODE=%d\n",
             ne->ip[0], __ne->ip[1], ne->ip[2], ne->ip[3],
             ne->mac_addr[0], ne->mac_addr[1],
             ne->mac_addr[2], ne->mac_addr[3],
@@ -762,12 +753,8 @@ void ne_show_info(struct ne *ne) {
             );
 }
 
-void ne_test_transmit() {
-
-    kprintf("ne_test: Trying to send a packet...\n");
-
+void ne_send_arp_request(u_char_t * dst_ip) {
     ARP arp_pkt;
-    u_char_t dst_ip[4] = {192, 168, 1, 1};
     u_char_t src_ip[4] = {__ne->ip[0], __ne->ip[1], __ne->ip[2], __ne->ip[3]};
     u_char_t dst_mac[6] = {0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF};
     u_char_t src_mac[6] = {
@@ -781,9 +768,15 @@ void ne_test_transmit() {
     ne_send_ethernet((unsigned char *) dst_mac, (void *) &arp_pkt, arp_len, ETHERTYPE_ARP);
 }
 
+void ne_test_transmit() {
+    wprintf(shell_wnd_ptr, "ne_test: Trying to send a packet...\n");
+    u_char_t dst_ip[4] = {192, 168, 1, 1};
+    ne_send_arp_request(dst_ip);
+}
+
 void ne_send_ethernet(unsigned char * dst, void * data, unsigned int len, unsigned short type) {
     if (NE_INTIALIZED != 1) {
-        kprintf("Sorry, NE2000 has not been initialized!\n");
+        wprintf(shell_wnd_ptr, "Sorry, NE2000 has not been initialized!\n");
         return;
     }
     char hdr_data[] = {
@@ -888,13 +881,27 @@ void ne_send_udp(unsigned char * params) {
     ne_do_send_udp(src_port, dst_port, ip_bytes, i, params);
 }
 
+void wait_for_mac_address(u_char_t * ip_addr) {
+    ne_send_arp_request(ip_addr);
+    sleep(100);
+}
+
 void ne_do_send_udp(u_int16_t sp, u_int16_t dp, u_char_t * dip, u_int_t len, void * payload) {
+    // our IP
     u_char_t sip[4] = {__ne->ip[0], __ne->ip[1], __ne->ip[2], __ne->ip[3]};
-    // TODO: REPLACE THIS WITH THE ACTUAL DST MAC
+
+    // dst mac address
     u_char_t dst_mac[6] = {0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF};
-    udp_packet packet;
+
+    // request IP to ARP cache
+    BOOL success = arp_ip_to_mac(dst_mac, dip);
+    if (!success) {
+        kprintf("IP %d.%d.%d.%d not found in ARP cache\n", dip[0], dip[1], dip[2], dip[3]);
+        wait_for_mac_address(dip);
+    }
 
     // create the UDP packet
+    udp_packet packet;
     len = create_udp_packet(sp, dp, sip, dip, len, payload, &packet);
 
     // prepare and send the ethernet packet
@@ -910,7 +917,7 @@ int ne_is_command(char* s1, char* s2) {
 }
 
 void ne_show_help() {
-    kprintf("Usage:\nneconfig [show|ip X.X.X.X|debug [0|1]]\n");
+    wprintf(shell_wnd_ptr, "Usage:\nneconfig [show|ip X.X.X.X|debug [0|1]]\n");
 }
 
 void ne_config_ip(char * params) {
@@ -967,34 +974,43 @@ void ne_config_ip(char * params) {
     __ne->ip[1] = octet[1];
     __ne->ip[2] = octet[2];
     __ne->ip[3] = octet[3];
-    kprintf("IP updated to %d.%d.%d.%d\n",
+    wprintf(shell_wnd_ptr, "IP updated to %d.%d.%d.%d\n",
             __ne->ip[0], __ne->ip[1], __ne->ip[2], __ne->ip[3]);
 }
 
 void ne_config(char * params) {
-    if (NE_INTIALIZED != 1) {
-        kprintf("Sorry, NE2000 has not been initialized!\n");
+    if (ne_is_command(params, "init")) {
+        ne_init();
         return;
+    }
 
-    } else if (ne_is_command(params, "ip")) {
+    if (NE_INTIALIZED != 1) {
+        wprintf(shell_wnd_ptr, "Sorry, NE2000 has not been initialized!\n");
+        return;
+    }
+
+    if (ne_is_command(params, "ip")) {
         ne_config_ip(params + 3);
+        return;
+    }
 
-    } else if (ne_is_command(params, "debug")) {
+    if (ne_is_command(params, "debug")) {
         if (*(params + 6) == '1') {
             NE_DEBUG = 1;
-            kprintf("Debug mode is ON.\n");
+            wprintf(shell_wnd_ptr, "Debug mode is ON.\n");
         } else {
             NE_DEBUG = 0;
-            kprintf("Debug mode is OFF.\n");
+            wprintf(shell_wnd_ptr, "Debug mode is OFF.\n");
         }
-
-    } else if (ne_is_command(params, "show")) {
-        ne_show_info(__ne);
-
-    } else {
-        ne_show_help();
-
+        return;
     }
+
+    if (ne_is_command(params, "show")) {
+        ne_show_info(__ne);
+        return;
+    }
+
+    ne_show_help();
 }
 
 void process_incoming_packet(void * data, int len) {
@@ -1005,7 +1021,10 @@ void process_incoming_packet(void * data, int len) {
 
     // case 1 - ARP reply
     if (is_arp_reply(data, len, &arp_packet) == TRUE) {
-        print_arp(&arp_packet, len);
+        if (NE_DEBUG) print_arp(&arp_packet, len);
+        kprintf("Adding to ARP cache %d.%d.%d.%d\n", arp_packet.ip_source[0], arp_packet.ip_source[1], arp_packet.ip_source[2], arp_packet.ip_source[3]);
+        arp_add_cache(arp_packet.ip_source, arp_packet.eth_source);
+        show_arp_table();
         return;
     }
 
@@ -1059,32 +1078,31 @@ void process_incoming_packet(void * data, int len) {
 }
 
 /*-------------------------------------------------------------------*\
-  init_ne2k_driver() - creates the ne2k_driver_process
+  init_ne_driver() - creates the ne_driver_process
 \*-------------------------------------------------------------------*/
-void init_ne2k_driver() {
-    ne2k_driver_port = create_process(ne2k_driver_process, 6, 0, "NE2K Driver process");
+void init_ne_driver() {
+    ne2k_driver_port = create_process(ne2k_driver_process, 6, 0, "NE process");
     resign();
 }
 
-void init_ne2k_test() {
+void ne_init() {
     int probe_result = 0;
-
-    kprintf("ne_test: Initializing NE2000...\n");
-
+    wprintf(shell_wnd_ptr, "ne_test: Initializing NE2000...\n");
     NE_INTIALIZED = ne_setup(__ne);
-
     sleep(1);
-
     ne_show_info(__ne);
-
     probe_result = ne_probe(__ne);
-    kprintf("ne_test: Probe result was: %d.", probe_result);
+    wprintf(shell_wnd_ptr, "ne_test: Probe result: %d.", probe_result);
     if (probe_result == 1) {
-        kprintf(" Successful!\n");
+        wprintf(shell_wnd_ptr, " Successful!\n");
     } else {
-        kprintf("Error :(\n");
+        wprintf(shell_wnd_ptr, "Error :(\n");
     }
-
     // Start NIC
     outportb(__ne->nic_addr + NE_P0_CR, NE_CR_RD2 | NE_CR_STA);
 }
+
+void ne_handle_interrupt() {
+    ne_dpc(__ne);
+}
+
