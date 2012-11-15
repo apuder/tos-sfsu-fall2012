@@ -11,11 +11,11 @@
 #include <nll.h>
 
 void got_packet(u_char *args, const struct pcap_pkthdr *header, const u_char *packet);
-//void print_all_arp(ARP *arp);
-void print_all_arp(pbuf *arp);
-//ARP arp_request_packet;
-//ARP arp_reply_packet;
-pbuf arp_packet;
+void print_all_arp(ARP *arp);
+//void print_all_arp(pbuf *arp);
+ARP arp_request_packet;
+ARP arp_reply_packet;
+//pbuf arp_packet;
 //pbuf arp_reply_packet;
 IP ip_header;
 ETH ether_header;
@@ -104,24 +104,24 @@ int main()
 void got_packet(u_char *args, const struct pcap_pkthdr *header, const  u_char *packet)
 {
 
-  if(is_arp_request((void *)packet,(u_int_t)header->len,&arp_packet))
-  {
-     //print_arp(&arp_request_packet,(u_int_t)header->len);
-     //print_all_arp(&arp_request_packet);
+ if(is_arp_request((void *)packet,(u_int_t)header->len,&arp_request_packet))
+ {
+    print_arp(&arp_request_packet,(u_int_t)header->len);
+    print_all_arp(&arp_request_packet);
      //printPacket((u_int_t)header->len,packet);
-	print_arp(&arp_packet);
+	/*print_arp(&arp_packet);
 	print_all_arp(&arp_packet);
-	printPacket(&arp_packet);
+	printPacket(&arp_packet);*/
 
-  }
+ }
       
- else if(is_arp_reply((void *)packet,(u_int_t)header->len,&arp_packet))
+ else if(is_arp_reply((void *)packet,(u_int_t)header->len,&arp_reply_packet))
   {
-    //print_arp(&arp_reply_packet,(u_int_t)header->len);
-    //print_all_arp(&arp_reply_packet);
-	print_arp(&arp_packet);
+ 	  print_arp(&arp_reply_packet,(u_int_t)header->len);
+   	  print_all_arp(&arp_reply_packet);
+	/*print_arp(&arp_packet);
 	print_all_arp(&arp_packet);
-	printPacket(&arp_packet);
+	printPacket(&arp_packet);*/
 }
   else if(is_ip_packet((void *)packet,(u_int_t)header->len,&ip_header))
   {
@@ -130,7 +130,7 @@ void got_packet(u_char *args, const struct pcap_pkthdr *header, const  u_char *p
     	print_ethernet_header(&ether_header,(u_int_t)header->len);
     print_ip_header(&ip_header);
   	if(is_udp_packet((void *)packet,(u_int_t)header->len,&udp)){
-	  print_udp_header(&udp);
+	  print_udp_header(&udp,ip_header.src,ip_header.dst);
       //printPacket((u_int_t)((udp.len)-UDP_HEAD_MIN_LEN),udp.payload);
 		  print_udp_data(&udp);
       }
@@ -148,16 +148,16 @@ void print_ethernet_header(ETH *ether, u_int_t len)
 }
 
 
-void print_arp(pbuf *buffer)
+void print_arp(ARP *pkt,u_int_t len)
 {
-	ARP *pkt = (ARP *)(buffer->payload);
-  	int len = buffer->tot_len;
+	//ARP *pkt = (ARP *)(buffer->payload);
+  	//int len = buffer->tot_len;
   
     printf("\n###############################################################\n");
  
     printf("\nARP Header\n");
     printf("   |-ARP Packet Total Length   : %u  Bytes(Size of Packet)\n",len);
-    printf("   |-ARP Operation             : %s\n",ntohs_tos(pkt->op) == ARP_REQUEST ? "ARP REQUEST" : "ARP REPLY");
+    printf("   |-ARP Operation             : %s\n",pkt->op == ARP_REQUEST ? "ARP REQUEST" : "ARP REPLY");
     printf("   |-Sender MAC Address        : %02x:%02x:%02x:%02x:%02x:%02x\n",pkt->eth_source[0],pkt->eth_source[1],\
     										pkt->eth_source[2],pkt->eth_source[3],pkt->eth_source[4],pkt->eth_source[5]);
     printf("   |-Sender IP Address         : %d.%d.%d.%d\n",pkt->ip_source[0],pkt->ip_source[1], \
@@ -169,7 +169,7 @@ void print_arp(pbuf *buffer)
   }
 void print_ip_header(IP *ip_pkt)
 {	
-    unsigned short ipheader_len  = ip_pkt->hdr_len*4;
+    unsigned short ipheader_len  = ip_pkt->hdr_len<<2;
   
     
     printf("\n");
@@ -191,15 +191,16 @@ void print_ip_header(IP *ip_pkt)
   
   }		
 
- void print_udp_header (UDP *ud)
+ void print_udp_header (UDP *ud,u_char_t *src,u_char_t *dst)
   {
 
     printf("\n");
     printf("UDP Header\n");
-    printf("   |-Source Port                : %u\n",ntohs_tos(ud->src_port));
-    printf("   |-Destination Port           : %u\n",ntohs_tos(ud->dst_port));
-    printf("   |-Length                     : %u\n",ntohs_tos(ud->len));
-    printf("   |-UDP checksum (optional)    : %#04X\n",ntohs_tos(ud->checksum));
+    printf("   |-Source Port		: %u\n",ntohs_tos(ud->src_port));
+    printf("   |-Destination Port		: %u\n",ntohs_tos(ud->dst_port));
+    printf("   |-Length			: %u\n",ntohs_tos(ud->len));
+    printf("   |-UDP checksum		: %#04X\n",ntohs_tos(ud->checksum));
+	printf("   |-Computed UDP checksum	: %#04X\n",ntohs_tos(udp_checksum(ud,src,dst)));
  
   }
   
@@ -260,19 +261,19 @@ void print_ip_header(IP *ip_pkt)
 
 
 	
-  void print_all_arp(pbuf *buffer)
+  void print_all_arp(ARP *arp)
     {
 
-	  ARP *arp = (ARP *)(buffer->payload);
+	  //ARP *arp = (ARP *)(buffer->payload);
 
 	printf("\n###############################################################\n");
  
     printf("\nARP Header\n");
-    printf("   |-Hardware type             : %x\n",ntohs_tos(arp->hard_type));
-    printf("   |-Protocol type             : %x\n",ntohs_tos(arp->proto_type));
+    printf("   |-Hardware type             : %x\n",arp->hard_type);
+    printf("   |-Protocol type             : %x\n",arp->proto_type);
     printf("   |-Hardware size             : %x\n",arp->hard_size);
     printf("   |-Protocol size             : %x\n",arp->proto_size);
-    printf("   |-Operation                 : %x\n",ntohs_tos(arp->op));
+    printf("   |-Operation                 : %x\n",arp->op);
     printf("   |-Source MAC Address        : %x%x%x%x%x%x\n",arp->eth_source[0],arp->eth_source[1], \
 	   					arp->eth_source[2],arp->eth_source[3],arp->eth_source[4],arp->eth_source[5]);
     printf("   |-Source IP Address         : %x%x%x%x\n",arp->ip_source[0],arp->ip_source[1], \
@@ -283,7 +284,7 @@ void print_ip_header(IP *ip_pkt)
            						arp->ip_dest[2],arp->ip_dest[3]);
     }
 
-/*  void printPacket(void *packet , u_int_t len)
+  void printPacket(void *packet , u_int_t len)
 {
 	   int i=0;
 		u_char_t *pkt = (u_char_t *)packet;
@@ -300,9 +301,9 @@ void print_ip_header(IP *ip_pkt)
    printf("\n");
    printf("%d\n",len);
    return;
-  }*/
+  }
 
-void printPacket(pbuf *buffer)
+/*void printPacket(pbuf *buffer)
 {
 	   int i=0;
 		u_char_t *pkt = (u_char_t *)(buffer->payload);
@@ -320,5 +321,5 @@ void printPacket(pbuf *buffer)
    printf("\n");
    printf("%d\n",len);
    return;
-}
+} */
 #endif

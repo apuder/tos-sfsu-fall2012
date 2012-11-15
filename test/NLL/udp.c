@@ -21,18 +21,26 @@ BOOL is_udp_packet(void *buffer,u_int_t len,UDP *packet)
 		packet->len = *((u_int16_t *)(udpheader + 4));
 		packet->checksum = *((u_int16_t *)(udpheader + 6));
 		memcpy_tos(packet->payload,(u_char_t *)(udpheader + UDP_HEAD_MIN_LEN),udp_payload_len);
+
+		if(packet->checksum != 0x0000)
+		   if(packet->checksum != udp_checksum(packet,ip_header.src,ip_header.dst))
+		   			return FALSE;
 	
-		 return TRUE;
+	   return TRUE;
 	}
 	else
 		return FALSE;
 }
 
- u_int16_t udp_checksum(UDP *udp,u_char_t *src_ip,u_char_t *dst_ip, int len) // udp length header + payload
+ u_int16_t udp_checksum(UDP *udp,u_char_t *src_ip,u_char_t *dst_ip) // udp length header + payload
  {
-	unsigned short temp = udp->checksum;
-	udp->checksum = 0;
-	int length = len;
+	u_int16_t temp = udp->checksum;
+   if(temp != 0x0000)
+		udp->checksum = 0xFFFF;
+   else
+	 	udp->checksum = 0x0000;
+	int length = ntohs_tos(udp->len);
+   	u_int16_t len = udp->len;
 	u_int16_t *w = (u_int16_t *)udp;
 	u_int16_t *src = (u_int16_t *)src_ip;
 	u_int16_t *dst = (u_int16_t *)dst_ip;
@@ -49,18 +57,15 @@ BOOL is_udp_packet(void *buffer,u_int_t len,UDP *packet)
 
 	if ( length & 1 )
 		 // Add the padding if the packet length is odd         
-		 //sum += *((u_char_t *)w);
-	sum +=0;
-
+		 sum += *((u_char_t *)w);
 	sum += *(src++);
  	sum += *src;
 
 	sum += *(dst++);
 	sum += *dst;
 
-	sum += 0x00;
 	sum += htons_tos(IP_PROTO_UDP);
-	sum += htons_tos(length);
+	sum += len;
 	 
 	 // Add the carries                                              
 	while (sum >> 16)
@@ -71,7 +76,8 @@ BOOL is_udp_packet(void *buffer,u_int_t len,UDP *packet)
 	return (answer);
  }
 
-int create_udp_hr(u_int16_t src_port,u_int16_t dst_port,u_int_t payload_len,void *payload,UDP *ud)
+int create_udp_hr(u_int16_t src_port,u_int16_t dst_port,u_int_t payload_len,void *payload,\
+  				  u_char_t *sip, u_char_t *dip,UDP *ud)
 {
 	unsigned short packet_len = (payload_len + UDP_HEAD_MIN_LEN);
 	
@@ -81,16 +87,18 @@ int create_udp_hr(u_int16_t src_port,u_int16_t dst_port,u_int_t payload_len,void
 	ud->checksum = 0;
 	memcpy_tos(ud->payload,(u_char_t *)payload,payload_len);
 
+  	ud->checksum = udp_checksum(ud,sip,dip);
+
 	return (int)packet_len;
 }
 
 int create_udp_packet(u_int16_t sp,u_int16_t dp,u_char_t *sip, u_char_t *dip,\
-  u_int_t p_len,void *payload,udp_packet *packet)
+  					  u_int_t p_len,void *payload,udp_packet *packet)
 {
 	IP ip;
 	UDP ud;
 
-	int udp_len = create_udp_hr(sp,dp,p_len,payload,&ud);
+	int udp_len = create_udp_hr(sp,dp,p_len,payload,sip,dip,&ud);
 	int ip_len = create_ip_hr(sip,dip,(u_int16_t)udp_len,&ip);
 	memcpy_tos(packet->buffer,(u_char_t *)&ip,IP_HEAD_MIN_LEN);
 	memcpy_tos((packet->buffer+IP_HEAD_MIN_LEN),(u_char_t *)&ud,udp_len);

@@ -263,12 +263,14 @@ typedef struct {
 	u_char_t buffer[MAX_PACKET_SIZE];
 }udp_packet;
   
- u_int16_t udp_checksum(UDP *udp,u_char_t *src_ip,u_char_t *dst_ip,int len);
+ u_int16_t udp_checksum(UDP *udp,u_char_t *src_ip,u_char_t *dst_ip);
+
  int create_udp_packet(u_int16_t src_port,u_int16_t dst_port,u_char_t *src_ip, \
-     				u_char_t *dst_ip,u_int_t payload_len,void *payload,udp_packet *packet);
- int create_udp_hr(u_int16_t src_port,u_int16_t dst_port,u_int_t payload_len,void *payload,UDP *ud);
+     				   u_char_t *dst_ip,u_int_t payload_len,void *payload,udp_packet *packet);
+ int create_udp_hr(u_int16_t src_port,u_int16_t dst_port,u_int_t payload_len,void *payload, \
+   				   u_char_t *sip, u_char_t *dip,UDP *ud);
  BOOL is_udp_packet(void *buffer,u_int_t len, UDP *packet);
- void print_udp_header (UDP *ud);
+ void print_udp_header (UDP *ud,u_char_t *src_ip,u_char_t *dst_ip);
  void print_udp_data(UDP *ud);
 
 #endif

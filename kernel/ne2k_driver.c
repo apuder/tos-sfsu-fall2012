@@ -1005,14 +1005,12 @@ void process_incoming_packet(void * data, int len) {
 
     // case 1 - ARP reply
     if (is_arp_reply(data, len, &arp_packet) == TRUE) {
-        print_arp(&arp_packet, len);
-        return;
+         return;
     }
 
     // case 2 - ARP request
     if (is_arp_request(data, len, &arp_packet) == TRUE) {
-	    //print_arp(&arp_packet, len);
-        ARP arp_reply;
+	    ARP arp_reply;
         u_char_t src_ip[4] = {__ne->ip[0], __ne->ip[1], __ne->ip[2], __ne->ip[3]};
         u_char_t src_mac[6] = {
             __ne->mac_addr[0], __ne->mac_addr[1], __ne->mac_addr[2],
@@ -1046,14 +1044,14 @@ void process_incoming_packet(void * data, int len) {
         if (NE_DEBUG) {
             kprintf("OUR IP!\n");
         }
-		print_ip_header (&ip_packet);
-        // case 3b - UPD packet
+
+	    // case 3b - UPD packet
         UDP udp_packet;
         if (is_udp_packet(data, len, &udp_packet) == TRUE) {
-            //if (NE_DEBUG) {
-                print_udp_header(&udp_packet);
+            if (NE_DEBUG) {
+                print_udp_header(&udp_packet,ip_packet.src,ip_packet.dst);
                 print_udp_data(&udp_packet);
-            //}
+            	}
             return;
         }
     }
