@@ -34,7 +34,7 @@ public class UDPserver {
 			sendData = capitalizedSentence.getBytes();
 			DatagramPacket sendPacket =
 					new DatagramPacket(sendData, sendData.length, IPAddress, port);
-			socket.send(sendPacket);
+//			socket.send(sendPacket);
 		}
 		
 	}
