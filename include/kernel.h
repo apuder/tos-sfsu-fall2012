@@ -53,6 +53,7 @@ void move_cursor(WINDOW* wnd, int x, int y);
 void remove_cursor(WINDOW* wnd);
 void show_cursor(WINDOW* wnd);
 void clear_window(WINDOW* wnd);
+void clear_kernel_window();
 void output_char(WINDOW* wnd, unsigned char ch);
 void output_string(WINDOW* wnd, const char *str);
 void wprintf(WINDOW* wnd, const char* fmt, ...);
@@ -248,6 +249,26 @@ typedef struct _COM_Message {
 void init_com();
 
 
+/*=====>>> em.c <<<====================================================*/
+
+#define EM_GET_NEXT_EVENT 1
+#define EM_REG_EVENT_KEY_STROKE 101
+#define EM_REG_EVENT_UDP_PACKET_RECEIVED 102
+#define EM_EVENT_KEY_STROKE 201
+#define EM_EVENT_UDP_PACKET_RECEIVED 202
+
+extern PORT em_port;
+
+typedef struct _EM_Message {
+    unsigned int type;
+    unsigned int port;
+    unsigned char key;
+    void * data;
+} EM_Message;
+
+BOOL em_register_udp_listener(unsigned int port);
+BOOL em_register_kboard_listener();
+
 /*=====>>> keyb.c <<<====================================================*/
 
 #define KEYB_IRQ	0x61
@@ -271,15 +292,22 @@ extern PORT ne2k_driver_port;
 typedef struct _NE2K_Driver_Message {
 } NE2K_Driver_Message;
 
-void init_ne2k_driver();
-void init_ne2k_test();
+void init_ne_driver();
 void ne_test_transmit();
+void ne_handle_interrupt();
 void ne_config(char * params);
 void process_incoming_packet(void * data, int len);
 
 /*=====>>> shell.c <<<===================================================*/
 
+extern WINDOW* shell_wnd_ptr;
 void init_shell();
+
+/*=====>>> pong.c <<<===================================================*/
+
+extern PORT pong_port;
+void init_pong();
+void pong_coin_inserted();
 
 /*=====>>> train.c <<<===================================================*/
 

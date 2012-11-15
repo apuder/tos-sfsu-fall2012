@@ -255,7 +255,12 @@ void keyb_notifier (PROCESS self, PARAM param)
 	    /* we actually have a new keystroke. Send it to the
 	       keyboard process */
 	    msg.key_buffer = (char*) &new_key;
-	    message (keyb_port, &msg);
+	    // message (keyb_port, &msg);
+            
+            EM_Message em_msg;
+            em_msg.type = EM_EVENT_KEY_STROKE;
+            em_msg.key = (unsigned char) new_key;
+            message(em_port, &em_msg);
 	}
 	
 	if (special) special--;      /* these decrements will allow the */
@@ -279,7 +284,7 @@ void keyb_process (PROCESS self, PARAM param)
     Keyb_Message* client_msg;
     
     keyb_notifier_port =
-	create_process (keyb_notifier, 7, 0, "Keyboard Notifier");
+	create_process (keyb_notifier, 7, 0, "KB Notifier");
     keyb_notifier_proc = keyb_notifier_port->owner;
 
     client_proc = NULL;
@@ -327,7 +332,6 @@ void keyb_process (PROCESS self, PARAM param)
 
 void init_keyb()
 {
-    keyb_port = create_process (keyb_process, 6, 0,
-				"Keyboard Process");
+    keyb_port = create_process (keyb_process, 6, 0, "KB Process");
     resign();
 }

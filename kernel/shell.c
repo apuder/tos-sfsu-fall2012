@@ -1,7 +1,7 @@
 #include <kernel.h>
 
-
-static WINDOW shell_wnd = {0, 9, 61, 16, 0, 0, 0xDC};
+static WINDOW shell_wnd = {0, 20, 40, 5, 0, 0, 0xDC};
+WINDOW* shell_wnd_ptr = &shell_wnd;
 static WINDOW train_wnd = {0, 0, 80, 8, 0, 0, ' '};
 static WINDOW pacman_wnd = {61, 8, 0, 0, 0, 0, ' '};
 static WINDOW divider_wnd = {0, 8, 80, 1, 0, 0, ' '};
@@ -30,19 +30,19 @@ void run_pacman_app(WINDOW* wnd) {
     init_pacman(wnd, 4);
 }
 
-void run_ne2k_test(WINDOW* wnd) {
-    init_ne2k_test();
-}
-
 void read_line(char* buffer, int max_len) {
     Keyb_Message msg;
+    EM_Message * em_msg;
+    PROCESS sender_proc;
     char ch;
     int i = 0;
 
     while (1) {
         msg.key_buffer = &ch;
-        send(keyb_port, &msg);
-        switch (ch) {
+        // send(keyb_port, &msg);
+        // send(em_port, &em_msg);
+        em_msg = (EM_Message *) receive(&sender_proc);
+        switch (em_msg->key) {
             case '\b':
                 if (i == 0)
                     continue;
@@ -86,11 +86,6 @@ void process_command(char* command) {
         return;
     }
 
-    if (is_command(command, "ne2k")) {
-        run_ne2k_test(&pacman_wnd);
-        return;
-    }
-
     if (is_command(command, "train")) {
         run_train_app(&train_wnd);
         return;
@@ -121,8 +116,18 @@ void process_command(char* command) {
         return;
     }
 
-    if (is_command(command, "neconfig")) {
-        ne_config(command + 9);
+    if (is_command(command, "ne")) {
+        ne_config(command + 3);
+        return;
+    }
+
+    if (is_command(command, "pong")) {
+        init_pong();
+        return;
+    }
+
+    if (is_command(command, "coin")) {
+        pong_coin_inserted();
         return;
     }
 
@@ -136,7 +141,7 @@ void process_command(char* command) {
         wprintf(&shell_wnd, "  - stop   make the train stop\n");
         wprintf(&shell_wnd, "  - rev    reverse train direction\n");
         wprintf(&shell_wnd, "  - train  start train application\n");
-        wprintf(&shell_wnd, "  - ne2k   NE2K tests\n");
+        wprintf(&shell_wnd, "  - ne     NE2000 tools\n");
         wprintf(&shell_wnd, "  - send   sends test packet from NE2K\n\n");
         return;
     }
@@ -156,14 +161,51 @@ void shell_process(PROCESS self, PARAM param) {
     clear_window(&shell_wnd);
     clear_window(&train_wnd);
     clear_window(&divider_wnd);
-    for (i = 0; i < 79; i++) output_char(&divider_wnd, 196);
+    for (i = 0; i < 79; i++)
+        output_char(&divider_wnd, 196);
 
     wprintf(&shell_wnd, "TOS Shell\n");
     wprintf(&shell_wnd, "---------\n\n");
 
+    Keyb_Message msg;
+    EM_Message * em_msg;
+    PROCESS sender_proc;
+    char ch;
+    i = 0;
+    unsigned char process_input;
+
+    em_register_kboard_listener();
+
     while (1) {
+        i = 0;
+        process_input = 1;
         print_prompt();
-        read_line(buffer, 80);
+        while (process_input) {
+            msg.key_buffer = &ch;
+            // send(keyb_port, &msg);
+            // send(em_port, &em_msg);
+            em_msg = (EM_Message *) receive(&sender_proc);
+            ch = em_msg->key;
+            switch (ch) {
+                case '\b':
+                    if (i == 0)
+                        continue;
+                    i--;
+                    break;
+                case 13:
+                    buffer[i] = '\0';
+                    wprintf(&shell_wnd, "\n");
+                    process_input = 0;
+                    break;
+                default:
+                    if (i == 80)
+                        break;
+                    buffer[i++] = ch;
+                    break;
+            }
+            if (process_input)
+                wprintf(&shell_wnd, "%c", ch);
+        }
         process_command(buffer);
     }
 }

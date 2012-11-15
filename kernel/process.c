@@ -79,8 +79,8 @@ PROCESS fork()
 
 void print_process_heading(WINDOW* wnd)
 {
-    wprintf(wnd, "State           Active Prio Name\n");
-    wprintf(wnd, "------------------------------------------------\n");
+    wprintf(wnd, "State          Act Prio Name\n");
+    wprintf(wnd, "----------------------------\n");
 }
 
 void print_process_details(WINDOW* wnd, PROCESS p)
@@ -101,9 +101,9 @@ void print_process_details(WINDOW* wnd, PROCESS p)
     wprintf(wnd, state[p->state]);
     /* Check for active_proc */
     if (p == active_proc)
-	wprintf(wnd, " *      ");
+	wprintf(wnd, " *  ");
     else
-	wprintf(wnd, "        ");
+	wprintf(wnd, "    ");
     /* Priority */
     wprintf(wnd, "  %2d", p->priority);
     /* Name */
