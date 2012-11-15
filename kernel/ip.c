@@ -8,14 +8,15 @@
 
 BOOL is_ip_packet(void *buffer, u_int_t len, IP *ip_pkt)
 {
-	ETH ethheader;
-
-	if (is_ethernet_header(buffer, len,&ethheader)) {
-		if (ntohs_tos(ethheader.type) != ETHERTYPE_IP)
-			return FALSE;
-		u_char_t *ipheader = (u_char_t *)(buffer + ETH_HEAD_LEN);
+	
+		u_char_t *buf = (u_char_t *)buffer;
+  
+  		if (ntohs_tos (*((u_int16_t *)(buf + 2*ETH_ADDR_LEN))) != ETHERTYPE_IP)
+            	return FALSE;
+		
+		u_char_t *ipheader = (u_char_t *)(buf + ETH_HEAD_LEN);
 		if(((*(ipheader) & 0x0F)*4) < IP_HEAD_MIN_LEN )
-			return FALSE;
+				return FALSE;
 		ip_pkt->version = ((*(ipheader) >> 4 ) & 0x0F);
 		ip_pkt->hdr_len  = (*(ipheader) & 0x0F);
 		ip_pkt->tos = *(ipheader + 1) ;
@@ -28,12 +29,9 @@ BOOL is_ip_packet(void *buffer, u_int_t len, IP *ip_pkt)
 		memcpy_tos(ip_pkt->src,(u_char_t *)(ipheader + 12),IP_LEN);
 		memcpy_tos(ip_pkt->dst,(u_char_t *)(ipheader + 16),IP_LEN);
 		if(ip_pkt->checksum != ip_checksum(ip_pkt))
-			return FALSE;
+				return FALSE;
 		return TRUE;
 	}
-	else
-		return FALSE;
-}
 
 u_int16_t ip_checksum(IP *ip)
 {

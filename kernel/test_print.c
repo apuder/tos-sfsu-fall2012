@@ -34,7 +34,7 @@ void print_ethernet_header(ETH *ether, u_int_t len)
 
 void print_ip_header(IP *ip_pkt)
 {
-    unsigned short ipheader_len  = ip_pkt->hdr_len*4;
+    unsigned short ipheader_len  = ip_pkt->hdr_len<<2;
   
        
     kprintf("\n");
@@ -57,7 +57,7 @@ void print_ip_header(IP *ip_pkt)
   }
 
 
-void print_udp_header(UDP *ud)
+void print_udp_header(UDP *ud,u_char_t *src,u_char_t *dst)
   {
 	
     kprintf("\n");
@@ -65,7 +65,9 @@ void print_udp_header(UDP *ud)
     kprintf("   |-Source Port                : %u\n",ntohs_tos(ud->src_port));
     kprintf("   |-Destination Port           : %u\n",ntohs_tos(ud->dst_port));
     kprintf("   |-Length                     : %u\n",ntohs_tos(ud->len));
-	kprintf("   |-UDP checksum (optional)    : %04x\n",ntohs_tos(ud->checksum));
+	kprintf("   |-UDP checksum               : %04x\n",ntohs_tos(ud->checksum));
+	kprintf("   |-Computed UDP checksum      : %04x\n",ntohs_tos(udp_checksum(ud,src,dst)));
+	
 	}
 
 void print_packet(void *packet,u_int_t len)
