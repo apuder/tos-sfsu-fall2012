@@ -1021,10 +1021,14 @@ void process_incoming_packet(void * data, int len) {
 
     // case 1 - ARP reply
     if (is_arp_reply(data, len, &arp_packet) == TRUE) {
-        if (NE_DEBUG) print_arp(&arp_packet, len);
-        kprintf("Adding to ARP cache %d.%d.%d.%d\n", arp_packet.ip_source[0], arp_packet.ip_source[1], arp_packet.ip_source[2], arp_packet.ip_source[3]);
+        if (NE_DEBUG) {
+            print_arp(&arp_packet, len);
+            kprintf("Adding to ARP cache %d.%d.%d.%d\n",
+                    arp_packet.ip_source[0], arp_packet.ip_source[1],
+                    arp_packet.ip_source[2], arp_packet.ip_source[3]);
+        }
         arp_add_cache(arp_packet.ip_source, arp_packet.eth_source);
-        show_arp_table();
+        // show_arp_table();
         return;
     }
 
@@ -1072,6 +1076,7 @@ void process_incoming_packet(void * data, int len) {
                 print_udp_header(&udp_packet, ip_packet.src, ip_packet.dst);
                 print_udp_data(&udp_packet);
             }
+            em_new_udp_packet(&udp_packet);
             return;
         }
     }

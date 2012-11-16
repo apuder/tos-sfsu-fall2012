@@ -1,4 +1,5 @@
 #include <kernel.h>
+#include <nll.h>
 
 PORT em_port;
 PORT em_test_port;
@@ -18,6 +19,27 @@ Event_Listener UDP_LISTENERS[MAX_LISTENERS];
 Event_Listener KEY_LISTENERS[MAX_LISTENERS];
 static unsigned int nbr_of_udp_listeners = 0;
 static unsigned int nbr_of_key_listeners = 0;
+
+void em_new_keystroke(unsigned char key) {
+    EM_Message msg;
+    msg.sanity = SANITY_SHORT;
+    msg.type = EM_EVENT_KEY_STROKE;
+    msg.key = key;
+    em_new_event(&msg);
+}
+
+void em_new_udp_packet(UDP * udp) {
+    EM_Message msg;
+    msg.sanity = SANITY_SHORT;
+    msg.type = EM_EVENT_UDP_PACKET_RECEIVED;
+    msg.port = ntohs_tos(udp->dst_port);
+    msg.data = udp;
+    em_new_event(&msg);
+}
+
+void em_new_event(EM_Message * msg) {
+    message(em_port, msg);
+}
 
 BOOL em_register_udp_listener(unsigned int udp_port) {
     if (nbr_of_udp_listeners > MAX_LISTENERS - 1)
@@ -44,9 +66,13 @@ void em_process(PROCESS self, PARAM param) {
     PORT dst_port;
     unsigned int kboard_focus = 0;
     unsigned int i;
+    unsigned int msg_type;
 
     while (1) {
+
         msg = (EM_Message*) receive(&sender_proc);
+        // assert(msg->sanity == SANITY_SHORT);
+
         switch (msg->type) {
 
             case EM_EVENT_KEY_STROKE:
@@ -61,17 +87,20 @@ void em_process(PROCESS self, PARAM param) {
                 break;
 
             case EM_EVENT_UDP_PACKET_RECEIVED:
-                kprintf("PACKET");
+                // kprintf("PACKET");
                 for (i = 0; i < MAX_LISTENERS; i++) {
                     if (UDP_LISTENERS[i].process == NULL) break;
                     if (UDP_LISTENERS[i].udp_port == msg->port) {
                         dst_port = UDP_LISTENERS[i].proc_port;
-                        message(dst_port, &msg);
+                        kprintf("Sending UDP packet to: ");
+                        kprintf(UDP_LISTENERS[i].process->name);
+                        message(dst_port, msg);
                     }
                 }
                 break;
 
             default:
+                kprintf("EV_TYPE=%d", msg->type);
                 panic("UNKNOWN EVENT TYPE");
                 break;
         }

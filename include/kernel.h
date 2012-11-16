@@ -4,6 +4,7 @@
 
 #include <assert.h>
 #include <tos_util.h>
+#include <nll.h>
 
 #define TRUE	1
 #define FALSE	0
@@ -13,6 +14,8 @@
 #define NULL	((void *) 0)
 #endif
 
+#define SANITY_SHORT (unsigned short) 0xDEAD
+#define SANITY_INT (unsigned int) 0xDEADBEEF
 
 typedef int BOOL;
 
@@ -252,15 +255,16 @@ void init_com();
 
 /*=====>>> em.c <<<====================================================*/
 
-#define EM_GET_NEXT_EVENT 1
-#define EM_REG_EVENT_KEY_STROKE 101
-#define EM_REG_EVENT_UDP_PACKET_RECEIVED 102
-#define EM_EVENT_KEY_STROKE 201
-#define EM_EVENT_UDP_PACKET_RECEIVED 202
+#define EM_GET_NEXT_EVENT (unsigned int) 1
+#define EM_REG_EVENT_KEY_STROKE (unsigned int) 101
+#define EM_REG_EVENT_UDP_PACKET_RECEIVED (unsigned int)102
+#define EM_EVENT_KEY_STROKE (unsigned int) 201
+#define EM_EVENT_UDP_PACKET_RECEIVED (unsigned int) 202
 
 extern PORT em_port;
 
 typedef struct _EM_Message {
+    unsigned short sanity;
     unsigned int type;
     unsigned int port;
     unsigned char key;
@@ -269,6 +273,9 @@ typedef struct _EM_Message {
 
 BOOL em_register_udp_listener(unsigned int port);
 BOOL em_register_kboard_listener();
+void em_new_event(EM_Message * msg);
+void em_new_udp_packet(UDP * udp);
+void em_new_keystroke(unsigned char key);
 
 /*=====>>> keyb.c <<<====================================================*/
 
@@ -298,6 +305,7 @@ void ne_test_transmit();
 void ne_handle_interrupt();
 void ne_config(char * params);
 void process_incoming_packet(void * data, int len);
+void send_udp(u_char_t * ip, u_int16_t port, u_int_t len, void * payload);
 
 /*=====>>> shell.c <<<===================================================*/
 

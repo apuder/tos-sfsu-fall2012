@@ -259,8 +259,10 @@ void keyb_notifier (PROCESS self, PARAM param)
             
             EM_Message em_msg;
             em_msg.type = EM_EVENT_KEY_STROKE;
+            em_msg.sanity = SANITY_SHORT;
             em_msg.key = (unsigned char) new_key;
             message(em_port, &em_msg);
+            // em_new_keystroke((unsigned char) new_key);
 	}
 	
 	if (special) special--;      /* these decrements will allow the */

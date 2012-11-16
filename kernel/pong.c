@@ -9,6 +9,9 @@
 #define PONG_MOVE_UP 113
 #define PONG_MOVE_DOWN 97
 
+#define OUR_PORT (u_int16_t) 9876
+#define THEIR_PORT (u_int16_t) 9876
+
 BOOL pong_init = 0;
 BOOL coin_inserted = 0;
 PORT pong_port;
@@ -57,6 +60,10 @@ void pong_process(PROCESS self, PARAM param) {
     unsigned char ball_x = 40;
     unsigned char ball_y = 10;
 
+    unsigned char * byte;
+    UDP * packet;
+    u_char_t dip[4] = {192, 168, 1, 1};
+
     poke_screen(0, our_paddle, (unsigned short) PONG_PADDLE | PONG_BACKGROUND);
     poke_screen(79, their_paddle, (unsigned short) PONG_PADDLE | PONG_BACKGROUND);
     poke_screen(ball_x, ball_y, (unsigned short) PONG_BALL | PONG_BACKGROUND);
@@ -77,9 +84,17 @@ void pong_process(PROCESS self, PARAM param) {
                     our_paddle++;
                     poke_screen(0, our_paddle, (unsigned short) PONG_PADDLE | PONG_BACKGROUND);
                 }
+                ne_do_send_udp(OUR_PORT, THEIR_PORT, dip, 1, (void *) &our_paddle);
                 break;
             case EM_EVENT_UDP_PACKET_RECEIVED:
-                wprintf(&pong_wnd, "New packet received");
+                packet = (UDP *) msg->data;
+                byte = (unsigned char *) packet->payload;
+                poke_screen(0, their_paddle, (unsigned short) PONG_EMPTY_CHAR | PONG_BACKGROUND);
+                poke_screen(ball_x, ball_y, (unsigned short) PONG_EMPTY_CHAR | PONG_BACKGROUND);
+                ball_x = (unsigned char) *(byte);
+                ball_y = (unsigned char) *(++byte);
+                their_paddle = (unsigned char) *(++byte);
+                kprintf("Ball %d,%d Paddle %d", ball_x, ball_y, their_paddle);
                 poke_screen(0, their_paddle, (unsigned short) PONG_PADDLE | PONG_BACKGROUND);
                 poke_screen(ball_x, ball_y, (unsigned short) PONG_BALL | PONG_BACKGROUND);
                 break;
