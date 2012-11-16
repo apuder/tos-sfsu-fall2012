@@ -917,7 +917,7 @@ int ne_is_command(char* s1, char* s2) {
 }
 
 void ne_show_help() {
-    wprintf(shell_wnd_ptr, "Usage:\nneconfig [show|ip X.X.X.X|debug [0|1]]\n");
+    wprintf(shell_wnd_ptr, "Usage:\nne [show|ip X.X.X.X|debug [0|1]]\n");
 }
 
 void ne_config_ip(char * params) {
@@ -1030,7 +1030,7 @@ void process_incoming_packet(void * data, int len) {
 
     // case 2 - ARP request
     if (is_arp_request(data, len, &arp_packet) == TRUE) {
-	    ARP arp_reply;
+        ARP arp_reply;
         u_char_t src_ip[4] = {__ne->ip[0], __ne->ip[1], __ne->ip[2], __ne->ip[3]};
         u_char_t src_mac[6] = {
             __ne->mac_addr[0], __ne->mac_addr[1], __ne->mac_addr[2],
@@ -1051,7 +1051,7 @@ void process_incoming_packet(void * data, int len) {
         // kprintf("dst=%d.%d.%d.%d\n", ip_packet.dst[0], ip_packet.dst[1], ip_packet.dst[2], ip_packet.dst[3]);
 
         // case 3a - IP packet - not to us
-        if (ip_packet.dst[0] != __ne->ip[0]	
+        if (ip_packet.dst[0] != __ne->ip[0]
                 || ip_packet.dst[1] != __ne->ip[1]
                 || ip_packet.dst[2] != __ne->ip[2]
                 || ip_packet.dst[3] != __ne->ip[3]) {
@@ -1065,13 +1065,13 @@ void process_incoming_packet(void * data, int len) {
             kprintf("OUR IP!\n");
         }
 
-	    // case 3b - UPD packet
+        // case 3b - UPD packet
         UDP udp_packet;
         if (is_udp_packet(data, len, &udp_packet) == TRUE) {
             if (NE_DEBUG) {
-                print_udp_header(&udp_packet,ip_packet.src,ip_packet.dst);
+                print_udp_header(&udp_packet, ip_packet.src, ip_packet.dst);
                 print_udp_data(&udp_packet);
-            	}
+            }
             return;
         }
     }
