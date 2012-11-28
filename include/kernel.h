@@ -319,6 +319,11 @@ extern PORT pong_port;
 void init_pong();
 void pong_coin_inserted();
 
+/*=====>>> chat.c <<<===================================================*/
+
+extern PORT chat_port;
+void init_chat();
+
 /*=====>>> train.c <<<===================================================*/
 
 void init_train(WINDOW* wnd);
