@@ -5,6 +5,7 @@
 #include <assert.h>
 #include <tos_util.h>
 #include <nll.h>
+#include <keycodes.h>
 
 #define TRUE	1
 #define FALSE	0

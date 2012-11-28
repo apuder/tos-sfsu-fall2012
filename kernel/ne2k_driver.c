@@ -883,7 +883,7 @@ void ne_send_udp(unsigned char * params) {
 
 void wait_for_mac_address(u_char_t * ip_addr) {
     ne_send_arp_request(ip_addr);
-    sleep(100);
+    sleep(5);
 }
 
 void ne_do_send_udp(u_int16_t sp, u_int16_t dp, u_char_t * dip, u_int_t len, void * payload) {
@@ -896,8 +896,12 @@ void ne_do_send_udp(u_int16_t sp, u_int16_t dp, u_char_t * dip, u_int_t len, voi
     // request IP to ARP cache
     BOOL success = arp_ip_to_mac(dst_mac, dip);
     if (!success) {
-        kprintf("IP %d.%d.%d.%d not found in ARP cache\n", dip[0], dip[1], dip[2], dip[3]);
         wait_for_mac_address(dip);
+        success = arp_ip_to_mac(dst_mac, dip);
+        if (!success) {
+            kprintf("IP %d.%d.%d.%d not found in ARP cache. Cannot send UDP packet.\n", dip[0], dip[1], dip[2], dip[3]);
+            return;
+        }
     }
 
     // create the UDP packet

@@ -1,10 +1,9 @@
 #include <kernel.h>
 #include <nll.h>
+#include <keycodes.h>
 
 PORT em_port;
 PORT em_test_port;
-
-#define KEY_TAB 9
 
 typedef struct _Event_Listener {
     PROCESS process;
