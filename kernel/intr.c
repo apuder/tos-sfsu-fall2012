@@ -288,6 +288,8 @@ void isr_ne2k_driver_0() {
     p = interrupt_table[NE2K_IRQ];
 
     if (p == NULL) {
+        active_proc = dispatcher();
+        return;
         panic("service_intr_0xA: Spurious interrupt");
     }
 
