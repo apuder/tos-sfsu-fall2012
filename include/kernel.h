@@ -5,6 +5,7 @@
 #include <assert.h>
 #include <tos_util.h>
 #include <nll.h>
+#include <keycodes.h>
 
 #define TRUE	1
 #define FALSE	0
@@ -317,6 +318,11 @@ void init_shell();
 extern PORT pong_port;
 void init_pong();
 void pong_coin_inserted();
+
+/*=====>>> chat.c <<<===================================================*/
+
+extern PORT chat_port;
+void init_chat();
 
 /*=====>>> train.c <<<===================================================*/
 

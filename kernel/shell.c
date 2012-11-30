@@ -125,6 +125,10 @@ void process_command(char* command) {
         init_pong();
         return;
     }
+    if (is_command(command, "chat")) {
+        init_chat(); //hello
+        return;
+    }
 
     if (is_command(command, "coin")) {
         pong_coin_inserted();

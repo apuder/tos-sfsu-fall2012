@@ -21,6 +21,10 @@ void pong_coin_inserted() {
     coin_inserted = 1;
 }
 
+void blank_position(unsigned char x, unsigned char y) {
+    poke_screen(x, y, (unsigned short) PONG_EMPTY_CHAR | PONG_BACKGROUND);
+}
+
 void pong_process(PROCESS self, PARAM param) {
     PROCESS sender_proc;
     EM_Message * msg;
@@ -53,7 +57,7 @@ void pong_process(PROCESS self, PARAM param) {
     clear_window(&pong_wnd);
 
     em_register_kboard_listener();
-    em_register_udp_listener(9090);
+    em_register_udp_listener(OUR_PORT);
 
     unsigned char our_paddle = 0;
     unsigned char their_paddle = 0;
@@ -75,12 +79,12 @@ void pong_process(PROCESS self, PARAM param) {
                 break;
             case EM_EVENT_KEY_STROKE:
                 if (msg->key == PONG_MOVE_UP && our_paddle > 0) {
-                    poke_screen(0, our_paddle, (unsigned short) PONG_EMPTY_CHAR | PONG_BACKGROUND);
+                    blank_position(0, our_paddle);
                     our_paddle--;
                     poke_screen(0, our_paddle, (unsigned short) PONG_PADDLE | PONG_BACKGROUND);
                 }
                 if (msg->key == PONG_MOVE_DOWN && our_paddle < 19) {
-                    poke_screen(0, our_paddle, (unsigned short) PONG_EMPTY_CHAR | PONG_BACKGROUND);
+                    blank_position(0, our_paddle);
                     our_paddle++;
                     poke_screen(0, our_paddle, (unsigned short) PONG_PADDLE | PONG_BACKGROUND);
                 }
@@ -89,13 +93,13 @@ void pong_process(PROCESS self, PARAM param) {
             case EM_EVENT_UDP_PACKET_RECEIVED:
                 packet = (UDP *) msg->data;
                 byte = (unsigned char *) packet->payload;
-                poke_screen(0, their_paddle, (unsigned short) PONG_EMPTY_CHAR | PONG_BACKGROUND);
-                poke_screen(ball_x, ball_y, (unsigned short) PONG_EMPTY_CHAR | PONG_BACKGROUND);
+                blank_position(79, their_paddle);
+                blank_position(ball_x, ball_y);
                 ball_x = (unsigned char) *(byte);
                 ball_y = (unsigned char) *(++byte);
                 their_paddle = (unsigned char) *(++byte);
-                kprintf("Ball %d,%d Paddle %d", ball_x, ball_y, their_paddle);
-                poke_screen(0, their_paddle, (unsigned short) PONG_PADDLE | PONG_BACKGROUND);
+                //kprintf("Ball %d,%d Paddle %d", ball_x, ball_y, their_paddle);
+                poke_screen(79, their_paddle, (unsigned short) PONG_PADDLE | PONG_BACKGROUND);
                 poke_screen(ball_x, ball_y, (unsigned short) PONG_BALL | PONG_BACKGROUND);
                 break;
             default:

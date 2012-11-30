@@ -1,10 +1,9 @@
 #include <kernel.h>
 #include <nll.h>
+#include <keycodes.h>
 
 PORT em_port;
 PORT em_test_port;
-
-#define KEY_TAB 9
 
 typedef struct _Event_Listener {
     PROCESS process;
@@ -92,8 +91,8 @@ void em_process(PROCESS self, PARAM param) {
                     if (UDP_LISTENERS[i].process == NULL) break;
                     if (UDP_LISTENERS[i].udp_port == msg->port) {
                         dst_port = UDP_LISTENERS[i].proc_port;
-                        kprintf("Sending UDP packet to: ");
-                        kprintf(UDP_LISTENERS[i].process->name);
+                        // kprintf("Sending UDP packet to: ");
+                        // kprintf(UDP_LISTENERS[i].process->name);
                         message(dst_port, msg);
                     }
                 }
