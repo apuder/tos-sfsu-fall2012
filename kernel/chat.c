@@ -7,8 +7,8 @@
 
 BOOL chat_init = 0;
 PORT chat_port;
-WINDOW disp_chat_wnd = {40, 20, 40, 4, 0, 0, 0xDC};
-WINDOW in_mess_wnd = {40, 24, 40, 1, 0, 0, 0xDC};
+WINDOW disp_chat_wnd = {41, 21, 40, 4, 0, 0, 0xDC};
+WINDOW in_mess_wnd = {41, 24, 40, 1, 0, 0, 0xDC};
 
 void chat_process(PROCESS self, PARAM param) {
     PROCESS sender_proc;

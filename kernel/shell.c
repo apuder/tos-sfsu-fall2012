@@ -1,10 +1,10 @@
 #include <kernel.h>
 
-static WINDOW shell_wnd = {0, 20, 40, 5, 0, 0, 0xDC};
+static WINDOW shell_wnd = {0, 21, 40, 4, 0, 0, 0xDC};
 WINDOW* shell_wnd_ptr = &shell_wnd;
 static WINDOW train_wnd = {0, 0, 80, 8, 0, 0, ' '};
 static WINDOW pacman_wnd = {61, 8, 0, 0, 0, 0, ' '};
-static WINDOW divider_wnd = {0, 8, 80, 1, 0, 0, ' '};
+static WINDOW divider_wnd = {0, 20, 80, 1, 0, 0, ' '};
 
 void run_train_app(WINDOW* wnd) {
     static int already_run = 0;
@@ -165,8 +165,10 @@ void shell_process(PROCESS self, PARAM param) {
     clear_window(&shell_wnd);
     clear_window(&train_wnd);
     clear_window(&divider_wnd);
-    for (i = 0; i < 79; i++)
+    for (i = 0; i < 80; i++)
         output_char(&divider_wnd, 196);
+    for (i = 0; i < 5; i++)
+        output_char(&shell_wnd, 14);
 
     wprintf(&shell_wnd, "TOS Shell\n");
     wprintf(&shell_wnd, "---------\n\n");
