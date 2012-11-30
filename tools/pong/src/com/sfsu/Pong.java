@@ -86,7 +86,9 @@ public class Pong implements KeyListener {
 	public boolean detectCollision() {
 		// Test for collision with first paddle
 		if (y + vy > y1 && y + vy < y1 + PADDLE_HEIGHT
+                                                                                                && x + vx + PUCK_RADIUS > x1 //added
 				&& x + vx < x1 + PADDLE_WIDTH && x + vx > x1) {
+                                                                                               // && x + vx + PUCK_RADIUS> x1 + PADDLE_WIDTH ){
 			return true;
 		}
 
@@ -96,6 +98,8 @@ public class Pong implements KeyListener {
 				&& x + vx + PUCK_RADIUS < x2 + PADDLE_WIDTH) {
 			return true;
 		} else
+			
+			
 			return false;
 
 	}
@@ -104,6 +108,7 @@ public class Pong implements KeyListener {
 
 		if (role.equals("Sender")) {
 
+	
 			PlaySender();
 		}
 		if (role.equals("Receiver")) {
@@ -117,10 +122,32 @@ public class Pong implements KeyListener {
 	public void PlaySender() {
 		while (true) {
 
-			if (x + vx < 0 || x + vx > WIDTH || detectCollision())
+			if ( detectCollision()){
 				vx = -vx;
-			if (y + vy < 0 || y + vy > HEIGHT)
+				
+				
+			}
+			
+			if (y + vy < 0 || y > (HEIGHT - PUCK_RADIUS) ){
 				vy = -vy;
+				
+			}
+			
+			if(x+vx > (WIDTH -PUCK_RADIUS) || x+vx < 0 ){
+				try {
+					Thread.sleep(1000);
+					x = 0 + (int)(Math.random() * (801));
+					y = 0 + (int)(Math.random() * (201));
+                                                                                                                          
+				} catch (InterruptedException e) {
+					// TODO Auto-generated catch block
+					e.printStackTrace();
+				}
+						
+							
+			}
+			
+			
 
 			x = x + vx;
 			y = y + vy;
@@ -139,7 +166,7 @@ public class Pong implements KeyListener {
 	}
 
 	public void PlayReceiver() {
-		
+
 		byte[] receiveData = new byte[3];
 
 		while (true) {
