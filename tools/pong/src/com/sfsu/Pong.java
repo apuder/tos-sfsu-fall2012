@@ -13,7 +13,7 @@ public class Pong implements KeyListener {
 	private final int HEIGHT = 200;
 	private final int DELTA = 8;
 	private final int PADDLE_WIDTH = 5;
-	private final int PADDLE_HEIGHT = 50;
+	private final int PADDLE_HEIGHT = 20;
 	private final int PUCK_RADIUS = 10;
 
 	Graphics g;
@@ -52,17 +52,28 @@ public class Pong implements KeyListener {
 
 		if (role.equals("Sender")) {
 			if (e.getKeyCode() == KeyEvent.VK_UP)
-				y2 = y2 - DELTA;
-			else if (e.getKeyCode() == KeyEvent.VK_DOWN)
-				y2 = y2 + DELTA;
-			else if (e.getKeyChar() == 'i')
-				y1 = y1 - DELTA;
-			else if (e.getKeyChar() == 'k')
-				y1 = y1 + DELTA;
-		}
+                               y2 = y2 - DELTA;
+                               if(y2<0){
+                                       y2=0;
+                               }
+                       else if (e.getKeyCode() == KeyEvent.VK_DOWN)
+                               y2 = y2 + DELTA;
+                               if(y2>HEIGHT - PADDLE_HEIGHT){
+                                       y2 = HEIGHT - PADDLE_HEIGHT;
+                               }
+                       else if (e.getKeyChar() == 'i')
+                               y1 = y1 - DELTA;
+                               if(y1<0){
+                                       y1=0;
+                               }
+                       else if (e.getKeyChar() == 'k')
+                               y1 = y1 + DELTA;
+                               if(y1>HEIGHT - PADDLE_HEIGHT){
+                                       y1 = HEIGHT - PADDLE_HEIGHT;
+                               }
 
 	}
-
+        }
 	// These two are required by the compiler, but will not be used in your
 	// game.
 	public void keyReleased(KeyEvent e) {
@@ -135,7 +146,7 @@ public class Pong implements KeyListener {
 			
 			if(x+vx > (WIDTH -PUCK_RADIUS) || x+vx < 0 ){
 				try {
-					Thread.sleep(1000);
+					Thread.sleep(300);
 					x = 0 + (int)(Math.random() * (801));
 					y = 0 + (int)(Math.random() * (201));
                                                                                                                           
