@@ -67,6 +67,13 @@ void em_process(PROCESS self, PARAM param) {
     unsigned int i;
     unsigned int msg_type;
 
+    EM_Message focus_change;
+    focus_change.type = EM_EVENT_FOCUS_IN;
+    focus_change.sanity = SANITY_SHORT;
+    EM_Message focus_out;
+    focus_change.type = EM_EVENT_FOCUS_OUT;
+    focus_change.sanity = SANITY_SHORT;
+
     while (1) {
 
         msg = (EM_Message*) receive(&sender_proc);
@@ -77,7 +84,17 @@ void em_process(PROCESS self, PARAM param) {
             case EM_EVENT_KEY_STROKE:
                 if (msg->key == KEY_TAB) {
                     // change focus to next keyboard listener
+
+                    dst_port = KEY_LISTENERS[kboard_focus].proc_port;
+                    focus_out.type = EM_EVENT_FOCUS_OUT;
+                    // kprintf("%d to %d (%d) -", focus_out.type, kboard_focus, dst_port);
+                    message(dst_port, &focus_out);
+
                     kboard_focus = (kboard_focus + 1) % nbr_of_key_listeners;
+                    dst_port = KEY_LISTENERS[kboard_focus].proc_port;
+                    focus_change.type = EM_EVENT_FOCUS_IN;
+                    message(dst_port, &focus_change);
+
                 } else {
                     // send keystroke to current listener
                     dst_port = KEY_LISTENERS[kboard_focus].proc_port;
