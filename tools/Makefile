@@ -1,5 +1,5 @@
 
-DIRS = fat boot ttc
+DIRS = fat boot ttc pong
 
 
 all:
