@@ -111,15 +111,21 @@ void output_char(WINDOW* wnd, unsigned char c) {
                 }
             }
             break;
+        case 14:
+           poke_screen(wnd->x + wnd->width,
+                    wnd->y + wnd->cursor_y,
+                    (short unsigned int) 0xB3 | (default_color << 8)); 
+           wnd->cursor_y++;
+           break;
         default:
             poke_screen(wnd->x + wnd->cursor_x,
                     wnd->y + wnd->cursor_y,
                     (short unsigned int) c | (default_color << 8));
             wnd->cursor_x++;
-            if (wnd->cursor_x == wnd->width) {
-                wnd->cursor_x = 0;
-                wnd->cursor_y++;
-            }
+//            if (wnd->cursor_x == wnd->width) {
+//                wnd->cursor_x = 0;
+//                wnd->cursor_y++;
+//            }
             break;
     }
     if (wnd->cursor_y == wnd->height)
