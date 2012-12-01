@@ -1,5 +1,5 @@
-#ifndef _UDP_C
-#define _UDP_C
+#ifndef _UDP_C_
+#define _UDP_C_
 
 #include <nll.h>
 #ifdef NO_TOS
@@ -32,7 +32,7 @@ BOOL is_udp_packet(void *buffer,u_int_t len,UDP *packet)
 		return FALSE;
 }
 
- u_int16_t udp_checksum(UDP *udp,u_char_t *src_ip,u_char_t *dst_ip) // udp length header + payload
+u_int16_t udp_checksum(UDP *udp,u_char_t *src_ip,u_char_t *dst_ip) 
  {
 	u_int16_t temp = udp->checksum;
    if(temp != 0x0000)

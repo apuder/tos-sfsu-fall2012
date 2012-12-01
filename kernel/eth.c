@@ -1,5 +1,5 @@
-#ifndef _ETH_C
-#define _ETH_C
+#ifndef _ETH_C_
+#define _ETH_C_
 
 #define INLINE
 

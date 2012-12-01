@@ -1,5 +1,5 @@
-#ifndef _IP_C
-#define _IP_C
+#ifndef _IP_C_
+#define _IP_C_
 
 #include <nll.h>
 #ifdef NO_TOS
@@ -79,9 +79,11 @@ u_int16_t ip_checksum_v2(IP *ip)
 }
 
 /* 
- *method to convert an ip from dot decimal notation
+ * method to convert an ip from dot decimal notation
  * to an array of 4 bytes.
  */
+
+#define ctod(c) ((c) -'0')
 
 int inet_aton_tos(u_char_t *dot_ip, u_char_t *net_ip)
 {
@@ -98,7 +100,7 @@ int inet_aton_tos(u_char_t *dot_ip, u_char_t *net_ip)
 	{
 		if (is_digit(c)) 
 		  {
-			  val = (val * base) + (c - '0');
+			  val = (val * base) + ctod(c);
 			  if(val > 255)
 				  return -1;
 			  c = *++dot_ip;
@@ -141,7 +143,6 @@ int create_ip_hr(u_char_t *src_ip,u_char_t *dst_ip,u_int_t payload_len,IP *packe
 
 	return (int)packet_len;
 }
-
 
 
 #endif

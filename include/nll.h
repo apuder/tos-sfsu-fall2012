@@ -1,5 +1,5 @@
-#ifndef _NLL_H
-#define _NLL_H
+#ifndef _NLL_H_
+#define _NLL_H_
 
 #ifndef INLINE
 	# define INLINE extern inline
@@ -64,12 +64,12 @@ typedef unsigned char           	byte;
 typedef unsigned short          	word;
 typedef signed char             	char_t;
 typedef unsigned char           	u_char_t;
-typedef unsigned char 		   	    u_int8_t;
+typedef unsigned char 		   	u_int8_t;
 typedef signed short int        	int16_t;
 typedef unsigned short int      	u_int16_t;
 typedef signed int              	int_t;
 typedef unsigned int            	u_int_t;
-typedef unsigned int 		 		u_int32_t;
+typedef unsigned int 		 	u_int32_t;
 
 
 INLINE void memcpy_tos(void *dst,void *src,u_int_t len)
@@ -135,14 +135,11 @@ INLINE BOOL is_space(u_char_t c)
 BOOL is_ethernet_header(void *buffer , u_int_t len, ETH *ether);
 void print_ethernet_header(ETH *ether,u_int_t len);
 
-//void printPacket(void *packet,u_int_t len);
-
-
 
 /*************************** ip includes ****************************************/
 
 #define IP_V4                   	4
-#define IP_LEN 		  		     	4
+#define IP_LEN 		  		4
 #define IP_FRAME_LEN            	65535
 #define IP_HEAD_MIN_LEN         	20
 #define IP_DEFAULT_TTL          	64
@@ -157,7 +154,7 @@ void print_ethernet_header(ETH *ether,u_int_t len);
 #define IP_FLAG_SERVED          	0x8000
 #define IP_FLAG_MASK            	0x1FFF
 
-#define INADDR_BROADCAST        IP_ADDRESS(255, 255, 255, 255)
+
 
 
 typedef struct 
@@ -193,7 +190,7 @@ typedef struct
 
 #define ARPHRD_ETHER	 0x01
 #define ARP_REQUEST 	 0x01
-#define ARP_REPLY 	  	 0x02
+#define ARP_REPLY 	 0x02
 
 typedef struct
  { 
@@ -210,8 +207,6 @@ typedef struct
 
 
  BOOL is_arp_request(void *buffer, u_int_t len,ARP *arp_packet);
- //BOOL is_arp_request(void *buffer, u_int_t len,pbuf *arp_buffer);
- //BOOL is_arp_reply(void *buffer, u_int_t len,pbuf *arp_buffer);
  BOOL is_arp_reply(void *buffer, u_int_t len,ARP *arp_packet);
  void arp_add_cache(u_char_t *ip, u_char_t *mac);
  void show_arp_table();
@@ -223,17 +218,8 @@ void print_arp(ARP *pkt, u_int_t len);
  /*************************** UDP includes *********************/
 
 #define UDP_HEAD_MIN_LEN	8
-#define UDP_PSEUDO_H_LEN   12	
-#define	MAX_PAYLOAD		   250
-#define MAX_PACKET_SIZE	   300
-
-typedef struct 
-{
-	 u_char_t  src_ip[IP_LEN];
-	 u_char_t  dst_ip[IP_LEN];
-	 u_int16_t protocol;
-	 u_int16_t udp_len;
-}P_UDP;
+#define	MAX_PAYLOAD		250
+#define MAX_PACKET_SIZE	        300
 
 typedef struct 
 {
@@ -247,15 +233,16 @@ typedef struct
 typedef struct {
 	u_char_t buffer[MAX_PACKET_SIZE];
 }udp_packet;
-  
- u_int16_t udp_checksum(UDP *udp,u_char_t *src_ip,u_char_t *dst_ip);
 
- int create_udp_packet(u_int16_t src_port,u_int16_t dst_port,u_char_t *src_ip, \
+  
+u_int16_t udp_checksum(UDP *udp,u_char_t *src_ip,u_char_t *dst_ip);
+
+int create_udp_packet(u_int16_t src_port,u_int16_t dst_port,u_char_t *src_ip, \
      				   u_char_t *dst_ip,u_int_t payload_len,void *payload,udp_packet *packet);
- int create_udp_hr(u_int16_t src_port,u_int16_t dst_port,u_int_t payload_len,void *payload, \
+int create_udp_hr(u_int16_t src_port,u_int16_t dst_port,u_int_t payload_len,void *payload, \
    				   u_char_t *sip, u_char_t *dip,UDP *ud);
- BOOL is_udp_packet(void *buffer,u_int_t len, UDP *packet);
- void print_udp_header (UDP *ud,u_char_t *src_ip,u_char_t *dst_ip);
- void print_udp_data(UDP *ud);
+BOOL is_udp_packet(void *buffer,u_int_t len, UDP *packet);
+void print_udp_header (UDP *ud,u_char_t *src_ip,u_char_t *dst_ip);
+void print_udp_data(UDP *ud);
 
 #endif

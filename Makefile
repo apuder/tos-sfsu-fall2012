@@ -55,6 +55,7 @@ clean:
 	rm -f image/tos.img
 	rm -f $(KERNEL_IMG)
 	rm -f ttc.jar
+	rm -f pong.jar
 
 depend:
 	for i in $(DIRS); do $(MAKE) -C $$i .depend || exit 1; done

@@ -11,7 +11,7 @@ pong.jar: $(SRC)
 	javac -source 1.6 -d . -sourcepath ./src src/com/sfsu/Main.java
 	jar cfm pong.jar MANIFEST.MF com/sfsu/*.class 
 	rm -rf com
-	#cp ttc.jar ../..
+	cp pong.jar ../..
 
 clean:
 	rm -f pong.jar

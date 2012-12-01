@@ -1,5 +1,5 @@
-#ifndef _TEST_PRINT_C
-#define _TEST_PRINT_C
+#ifndef _TEST_PRINT_C_
+#define _TEST_PRINT_C_
 
 #include <nll.h>
 #include <kernel.h>
@@ -65,10 +65,10 @@ void print_udp_header(UDP *ud,u_char_t *src,u_char_t *dst)
     kprintf("   |-Source Port                : %u\n",ntohs_tos(ud->src_port));
     kprintf("   |-Destination Port           : %u\n",ntohs_tos(ud->dst_port));
     kprintf("   |-Length                     : %u\n",ntohs_tos(ud->len));
-	kprintf("   |-UDP checksum               : %04x\n",ntohs_tos(ud->checksum));
-	kprintf("   |-Computed UDP checksum      : %04x\n",ntohs_tos(udp_checksum(ud,src,dst)));
+    kprintf("   |-UDP checksum               : %04x\n",ntohs_tos(ud->checksum));
+    kprintf("   |-Computed UDP checksum      : %04x\n",ntohs_tos(udp_checksum(ud,src,dst)));
 	
-	}
+}
 
 void print_packet(void *packet,u_int_t len)
 {
