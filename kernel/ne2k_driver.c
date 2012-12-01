@@ -1091,21 +1091,22 @@ void process_incoming_packet(void * data, int len) {
 \*-------------------------------------------------------------------*/
 void init_ne_driver() {
     ne2k_driver_port = create_process(ne2k_driver_process, 6, 0, "NE process");
+    ne_init();
     resign();
 }
 
 void ne_init() {
     int probe_result = 0;
-    wprintf(shell_wnd_ptr, "ne_test: Initializing NE2000...\n");
+    // wprintf(shell_wnd_ptr, "ne_test: Initializing NE2000...\n");
     NE_INTIALIZED = ne_setup(__ne);
     sleep(1);
     ne_show_info(__ne);
     probe_result = ne_probe(__ne);
-    wprintf(shell_wnd_ptr, "ne_test: Probe result: %d.", probe_result);
+    // wprintf(shell_wnd_ptr, "ne_test: Probe result: %d.", probe_result);
     if (probe_result == 1) {
-        wprintf(shell_wnd_ptr, " Successful!\n");
+        // wprintf(shell_wnd_ptr, " Successful!\n");
     } else {
-        wprintf(shell_wnd_ptr, "Error :(\n");
+        // wprintf(shell_wnd_ptr, "Error :(\n");
     }
     // Start NIC
     outportb(__ne->nic_addr + NE_P0_CR, NE_CR_RD2 | NE_CR_STA);

@@ -1,10 +1,11 @@
 #include <kernel.h>
+#include <keycodes.h>
 
-static WINDOW shell_wnd = {0, 21, 40, 4, 0, 0, 0xDC};
+static WINDOW shell_wnd = {0, 21, 40, 4, 0, 0, CURSOR_ACTIVE};
 WINDOW* shell_wnd_ptr = &shell_wnd;
-static WINDOW train_wnd = {0, 0, 80, 8, 0, 0, ' '};
-static WINDOW pacman_wnd = {61, 8, 0, 0, 0, 0, ' '};
-static WINDOW divider_wnd = {0, 20, 80, 1, 0, 0, ' '};
+static WINDOW train_wnd = {0, 0, 80, 8, 0, 0, CURSOR_EMPTY};
+static WINDOW pacman_wnd = {61, 8, 0, 0, 0, 0, CURSOR_EMPTY};
+static WINDOW divider_wnd = {0, 8, 80, 1, 0, 0, CURSOR_EMPTY};
 
 void run_train_app(WINDOW* wnd) {
     static int already_run = 0;
@@ -30,6 +31,7 @@ void run_pacman_app(WINDOW* wnd) {
     init_pacman(wnd, 4);
 }
 
+/*
 void read_line(char* buffer, int max_len) {
     Keyb_Message msg;
     EM_Message * em_msg;
@@ -42,25 +44,40 @@ void read_line(char* buffer, int max_len) {
         // send(keyb_port, &msg);
         // send(em_port, &em_msg);
         em_msg = (EM_Message *) receive(&sender_proc);
-        switch (em_msg->key) {
-            case '\b':
-                if (i == 0)
-                    continue;
-                i--;
+        switch (em_msg->type) {
+            case EM_EVENT_FOCUS_IN:
+                show_cursor(&shell_wnd);
                 break;
-            case 13:
-                buffer[i] = '\0';
-                wprintf(&shell_wnd, "\n");
-                return;
+            case EM_EVENT_FOCUS_OUT:
+                remove_cursor(&shell_wnd);
+                break;
+            case EM_EVENT_KEY_STROKE:
+                switch (em_msg->key) {
+                    case '\b':
+                        if (i == 0)
+                            continue;
+                        i--;
+                        break;
+                    case 13:
+                        buffer[i] = '\0';
+                        wprintf(&shell_wnd, "\n");
+                        return;
+                    default:
+                        if (i == max_len)
+                            break;
+                        buffer[i++] = ch;
+                        break;
+                }
+                wprintf(&shell_wnd, "%c", ch);
+                break;
             default:
-                if (i == max_len)
-                    break;
-                buffer[i++] = ch;
+                kprintf("EVENT_TYPE %d\n", em_msg->type);
+                panic("UNKNOWN EVENT TYPE RECEIVED");
                 break;
         }
-        wprintf(&shell_wnd, "%c", ch);
     }
 }
+ */
 
 int is_command(char* s1, char* s2) {
     while (*s1 == *s2 && *s2 != '\0') {
@@ -191,26 +208,45 @@ void shell_process(PROCESS self, PARAM param) {
             // send(keyb_port, &msg);
             // send(em_port, &em_msg);
             em_msg = (EM_Message *) receive(&sender_proc);
-            ch = em_msg->key;
-            switch (ch) {
-                case '\b':
-                    if (i == 0)
-                        continue;
-                    i--;
+            // kprintf("MSG_TYPE=%d", em_msg->type);
+            switch (em_msg->type) {
+                case EM_EVENT_FOCUS_IN:
+                    // kprintf("IN");
+                    // shell_wnd.show_cursor = 1;
+                    // shell_wnd.cursor_char = 0xDC;
+                    // show_cursor(&shell_wnd);
+                    cursor_active(&shell_wnd);
                     break;
-                case 13:
-                    buffer[i] = '\0';
-                    wprintf(&shell_wnd, "\n");
-                    process_input = 0;
+                case EM_EVENT_FOCUS_OUT:
+                    // kprintf("OUT");
+                    // shell_wnd.show_cursor = 0;
+                    // shell_wnd.cursor_char = 0xB0;
+                    // remove_cursor(&shell_wnd);
+                    cursor_inactive(&shell_wnd);
                     break;
-                default:
-                    if (i == 80)
-                        break;
-                    buffer[i++] = ch;
+                case EM_EVENT_KEY_STROKE:
+                    ch = em_msg->key;
+                    switch (ch) {
+                        case '\b':
+                            if (i == 0)
+                                continue;
+                            i--;
+                            break;
+                        case 13:
+                            buffer[i] = '\0';
+                            wprintf(&shell_wnd, "\n");
+                            process_input = 0;
+                            break;
+                        default:
+                            if (i == 80)
+                                break;
+                            buffer[i++] = ch;
+                            break;
+                    }
+                    if (process_input)
+                        wprintf(&shell_wnd, "%c", ch);
                     break;
             }
-            if (process_input)
-                wprintf(&shell_wnd, "%c", ch);
         }
         process_command(buffer);
     }

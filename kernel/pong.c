@@ -44,7 +44,7 @@ void pong_process(PROCESS self, PARAM param) {
     wprintf(&pong_wnd, " '----------------' '----------------' '----------------' '----------------' \n");
     wprintf(&pong_wnd, "\n");
 
-    unsigned char times = 0;
+    unsigned char times = 10;
     while (!coin_inserted) {
         times % 2 == 0
                 ? wprintf(&pong_wnd, "********************************* INSERT COIN *********************************\n")
@@ -101,6 +101,10 @@ void pong_process(PROCESS self, PARAM param) {
                 //kprintf("Ball %d,%d Paddle %d", ball_x, ball_y, their_paddle);
                 poke_screen(79, their_paddle, (unsigned short) PONG_PADDLE | PONG_BACKGROUND);
                 poke_screen(ball_x, ball_y, (unsigned short) PONG_BALL | PONG_BACKGROUND);
+                break;
+            case EM_EVENT_FOCUS_IN:
+                break;
+            case EM_EVENT_FOCUS_OUT:
                 break;
             default:
                 panic("UNKNOWN MESSAGE RECIEVED");

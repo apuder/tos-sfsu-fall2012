@@ -7,7 +7,7 @@
 #define SCREEN_HEIGHT    25
 
 
-WORD default_color = 0x0f;
+WORD default_color = 0x0F;
 
 void poke_screen(int x, int y, WORD ch) {
     poke_w(SCREEN_BASE_ADDR + y * SCREEN_WIDTH * 2 + x * 2, ch);
@@ -41,6 +41,16 @@ void scroll_window(WINDOW* wnd) {
     ENABLE_INTR(flag);
 }
 
+void cursor_active(WINDOW* wnd) {
+    wnd->cursor_char = CURSOR_ACTIVE;
+    show_cursor(wnd);
+}
+
+void cursor_inactive(WINDOW* wnd) {
+    wnd->cursor_char = CURSOR_INACTIVE;
+    show_cursor(wnd);
+}
+
 void move_cursor(WINDOW* wnd, int x, int y) {
     assert(x < wnd->width && y < wnd->height);
     wnd->cursor_x = x;
@@ -49,13 +59,15 @@ void move_cursor(WINDOW* wnd, int x, int y) {
 
 void remove_cursor(WINDOW* wnd) {
     poke_screen(wnd->x + wnd->cursor_x,
-            wnd->y + wnd->cursor_y, ' ');
+            wnd->y + wnd->cursor_y, ' ' | (default_color << 8));
 }
 
 void show_cursor(WINDOW* wnd) {
+#if 1
     poke_screen(wnd->x + wnd->cursor_x,
             wnd->y + wnd->cursor_y,
             wnd->cursor_char | (default_color << 8));
+#endif
 }
 
 void clear_window(WINDOW* wnd) {
@@ -100,20 +112,20 @@ void output_char(WINDOW* wnd, unsigned char c) {
             }
             break;
         case 14:
-           poke_screen(wnd->x + wnd->width,
+            poke_screen(wnd->x + wnd->width,
                     wnd->y + wnd->cursor_y,
-                    (short unsigned int) 0xB3 | (default_color << 8)); 
-           wnd->cursor_y++;
-           break;
+                    (short unsigned int) 0xB3 | (default_color << 8));
+            wnd->cursor_y++;
+            break;
         default:
             poke_screen(wnd->x + wnd->cursor_x,
                     wnd->y + wnd->cursor_y,
                     (short unsigned int) c | (default_color << 8));
             wnd->cursor_x++;
-//            if (wnd->cursor_x == wnd->width) {
-//                wnd->cursor_x = 0;
-//                wnd->cursor_y++;
-//            }
+            //            if (wnd->cursor_x == wnd->width) {
+            //                wnd->cursor_x = 0;
+            //                wnd->cursor_y++;
+            //            }
             break;
     }
     if (wnd->cursor_y == wnd->height)
