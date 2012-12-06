@@ -32,7 +32,7 @@ public class Main {
 		Pong p;
 
 		if (args.length < 1) {
-			System.out.println("Defaul is type sender typer");
+			System.out.println("Defaul type is sender");
 			System.out.println("Usage: UDPClient " + "Now using host = " + host
 					+ ", Port# = " + port);
 		}

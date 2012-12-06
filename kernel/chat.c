@@ -7,8 +7,8 @@
 
 BOOL chat_init = 0;
 PORT chat_port;
-WINDOW disp_chat_wnd = {41, 21, 40, 4, 0, 0, 0xDC};
-WINDOW in_mess_wnd = {41, 24, 40, 1, 0, 0, 0xDC};
+WINDOW disp_chat_wnd = {41, 21, 40, 4, 0, 0, CURSOR_EMPTY};
+WINDOW in_mess_wnd = {41, 24, 40, 1, 0, 0, CURSOR_INACTIVE};
 
 void chat_process(PROCESS self, PARAM param) {
     PROCESS sender_proc;
@@ -64,7 +64,14 @@ void chat_process(PROCESS self, PARAM param) {
                 }
                 wprintf(&disp_chat_wnd, "%s: %s\n", opp_name, message);
                 break;
+            case EM_EVENT_FOCUS_IN:
+                cursor_active(&in_mess_wnd);
+                break;
+            case EM_EVENT_FOCUS_OUT:
+                cursor_inactive(&in_mess_wnd);
+                break;
             default:
+                kprintf("EVENT_TYPE %d", msg->type);
                 panic("UNKNOWN MESSAGE RECIEVED");
                 break;
         }

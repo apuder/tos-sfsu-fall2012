@@ -47,7 +47,7 @@ typedef struct {
     int x, y;
     int width, height;
     int cursor_x, cursor_y;
-    char cursor_char;
+    char cursor_char, show_cursor;
 } WINDOW;
 
 extern WINDOW* kernel_window;
@@ -63,6 +63,8 @@ void output_string(WINDOW* wnd, const char *str);
 void wprintf(WINDOW* wnd, const char* fmt, ...);
 void kprintf(const char* fmt, ...);
 void poke_screen(int x, int y, WORD ch);
+void cursor_active(WINDOW* wnd);
+void cursor_inactive(WINDOW* wnd);
 
 
 /*=====>>> process.c <<<====================================================*/
@@ -261,6 +263,8 @@ void init_com();
 #define EM_REG_EVENT_UDP_PACKET_RECEIVED (unsigned int)102
 #define EM_EVENT_KEY_STROKE (unsigned int) 201
 #define EM_EVENT_UDP_PACKET_RECEIVED (unsigned int) 202
+#define EM_EVENT_FOCUS_IN (unsigned int) 203
+#define EM_EVENT_FOCUS_OUT (unsigned int) 204
 
 extern PORT em_port;
 

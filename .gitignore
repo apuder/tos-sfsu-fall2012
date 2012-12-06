@@ -12,3 +12,5 @@ MakeVars
 tools/fat/
 image/disk_image
 nbproject/
+/tools/pong/dist/
+/tools/pong/build/
