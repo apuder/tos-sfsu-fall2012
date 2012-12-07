@@ -2,8 +2,8 @@
 #include <assert.h>
 #include <keycodes.h>
 
-#define DISP_PORT (u_int16_t) 9886
-#define LISTEN_PORT (u_int16_t) 9866
+#define DISP_PORT (u_int16_t) 9875
+#define LISTEN_PORT (u_int16_t) 9876
 
 BOOL chat_init = 0;
 PORT chat_port;
@@ -22,8 +22,11 @@ void chat_process(PROCESS self, PARAM param) {
     unsigned char * message;
     unsigned char mess_buffer[100];
     int i = 0;
+    int j = 0;
     UDP * packet;
     u_char_t dip[4] = {192, 168, 1, 1};
+    unsigned char user_name[10] = "User";
+    unsigned char opp_name[10] = "Opponent";
 
     while (1) {
         msg = (EM_Message*) receive(&sender_proc);
@@ -34,7 +37,13 @@ void chat_process(PROCESS self, PARAM param) {
                 if (msg->key == KEY_RETURN) {
                     clear_window(&in_mess_wnd);
                     mess_buffer[i] = '\0';
-                    wprintf(&disp_chat_wnd, "User: %s\n", mess_buffer);
+                    char name[5] = {mess_buffer[0], mess_buffer[1], mess_buffer[2], mess_buffer[3], mess_buffer[4]};
+                    if (is_command(name, "name:")) {
+                        for (j = 0; j < 10; j++) {
+                            user_name[j] = mess_buffer[j + 6];
+                        }
+                    }
+                    wprintf(&disp_chat_wnd, "%s: %s\n", user_name, mess_buffer);
                     ne_do_send_udp(LISTEN_PORT, DISP_PORT, dip, i, (void *) mess_buffer);
                     i = 0;
 
@@ -47,7 +56,13 @@ void chat_process(PROCESS self, PARAM param) {
             case EM_EVENT_UDP_PACKET_RECEIVED:
                 packet = (UDP *) msg->data;
                 message = (unsigned char *) packet->payload;
-                wprintf(&disp_chat_wnd, "Opponent: %s\n", message);
+                char name[5] = {message[0], message[1], message[2], message[3], message[4]};
+                if (is_command(name, "name:")) {
+                    for (j = 0; j < 10; j++) {
+                        user_name[j] = mess_buffer[j + 6];
+                    }
+                }
+                wprintf(&disp_chat_wnd, "%s: %s\n", opp_name, message);
                 break;
             case EM_EVENT_FOCUS_IN:
                 cursor_active(&in_mess_wnd);

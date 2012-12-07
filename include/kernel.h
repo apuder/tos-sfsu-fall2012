@@ -316,6 +316,7 @@ void send_udp(u_char_t * ip, u_int16_t port, u_int_t len, void * payload);
 
 extern WINDOW* shell_wnd_ptr;
 void init_shell();
+int is_command(char* s1, char* s2);
 
 /*=====>>> pong.c <<<===================================================*/
 
