@@ -186,13 +186,11 @@ unsigned get_fb_seg(void) {
     return seg;
 }
 
-#if 0
-
+/*
 void vmemwr(unsigned dst_off, unsigned char *src, unsigned count) {
     videoMemCpyData((unsigned char *) ((get_fb_seg() * 16) + dst_off), src, count);
 }
-
-#endif
+ */
 
 /**
  * Poke a byte to the video memory
@@ -202,14 +200,10 @@ void vpokeb(unsigned int off, unsigned int val) {
     videoPokeByte((base + off), val);
 }
 
-#if 0
-
 void vpokes(unsigned int off, unsigned int val) {
     unsigned char* base = VGA_BASE;
     videoPokeWord((base + off), val);
 }
-
-#endif
 
 void vpokew(unsigned int off, unsigned int val) {
     unsigned int* base = (unsigned int*) VGA_BASE;
@@ -321,6 +315,7 @@ void read_scan_segment4p(
         *(colors++) = read_pixel_offset4p(offset);
     }
 }
+#endif
 
 /**
  * Draws length colors to a segment of the VGA starting at x, y
@@ -337,7 +332,6 @@ void write_segment4p(unsigned offset, unsigned length, tos_color* colors) {
         }
     }
 }
-#endif 
 
 void v_write_8(tos_color color, unsigned char mask, unsigned int offset) {
     outportb(VGA_GC_INDEX, 0);
@@ -367,8 +361,7 @@ void write_pixel4p(unsigned int x, unsigned int y, tos_color c) {
 
 #if 0
 
-void write_char_8x8(
-        unsigned char c, unsigned int x, unsigned int y, tos_color color) {
+void write_char_8x8(unsigned char c, unsigned int x, unsigned int y, tos_color color) {
     unsigned wd_in_bytes, off, i, over;
     tos_color temp;
 
@@ -505,7 +498,7 @@ void set_vga_mode() {
     tos_graphics.write_pixel = write_pixel4p;
     // tos_graphics.read_pixel_position = read_pixel_position4p;
     // tos_graphics.read_pixel_offset = read_pixel_offset4p;
-    // tos_graphics.write_segment = write_segment4p;
+    tos_graphics.write_segment = write_segment4p;
     // tos_graphics.read_segment = read_scan_segment4p;
     // tos_graphics.fill_segment = fill_segment4p;
     // tos_graphics.write_char = write_char_8x8;
