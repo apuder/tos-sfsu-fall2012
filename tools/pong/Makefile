@@ -1,7 +1,7 @@
 
 SRC = \
 	src/com/sfsu/Main.java \
-	src/com/sfsu/Consts.java \
+	src/com/sfsu/ReceiverThread.java \
 	src/com/sfsu/Pong.java \
 	src/com/sfsu/UDPComm.java \
 	

@@ -10,29 +10,33 @@ import java.net.UnknownHostException;
 public class UDPComm {
 
 	// Member variables of the class
-	private int port;
+	private int SenderPort;
+	private int ReceiverPort;
 	private String host;
-	byte[] data;
+	private byte[] data;
 
-	// Declaring local variables
-	DatagramSocket SocketSender;
-	DatagramSocket SocketReceiver;
-	InetAddress IPAddress;
-
-	public UDPComm() {
-		super();
+	public int getSenderPort() {
+		return SenderPort;
 	}
 
-	public UDPComm(int port, String host) {
-		super();
-		this.port = port;
+	public void setSenderPort(int senderPort) {
+		SenderPort = senderPort;
+	}
+
+	public int getReceiverPort() {
+		return ReceiverPort;
+	}
+
+	public void setReceiverPort(int receiverPort) {
+		ReceiverPort = receiverPort;
+	}
+
+	public String getHost() {
+		return host;
+	}
+
+	public void setHost(String host) {
 		this.host = host;
-
-	}
-
-	public UDPComm(int port) {
-		super();
-		this.port = port;
 	}
 
 	public byte[] getData() {
@@ -43,21 +47,12 @@ public class UDPComm {
 		this.data = data;
 	}
 
-	public int getPort() {
-		return port;
-	}
 
-	public void setPort(int port) {
-		this.port = port;
-	}
 
-	public String getHost() {
-		return host;
-	}
-
-	public void setHost(String host) {
-		this.host = host;
-	}
+	// Declaring local variables
+	DatagramSocket SocketSender;
+	DatagramSocket SocketReceiver;
+	InetAddress IPAddress;
 
 	public void PrepareConnToSend() throws UnknownHostException,
 			SocketException {
@@ -70,14 +65,14 @@ public class UDPComm {
 	public void PrepareConnToReceive() throws UnknownHostException,
 			SocketException {
 
-		SocketReceiver = new DatagramSocket(this.port);
+		SocketReceiver = new DatagramSocket(this.ReceiverPort);
 
 	}
 
 	public void send(byte[] arr) {
 
 		DatagramPacket sendPacket = new DatagramPacket(arr, arr.length,
-				IPAddress, port);
+				IPAddress, SenderPort);
 		try {
 
 			SocketSender.send(sendPacket);
@@ -97,7 +92,7 @@ public class UDPComm {
 					receiveData.length);
 			SocketReceiver.receive(receivePacket);
 			receiveData = receivePacket.getData();
-			
+
 		} catch (Exception e) {
 			e.printStackTrace();
 		}
@@ -106,9 +101,9 @@ public class UDPComm {
 	}
 
 	public void closeConnection() {
-		if  (!SocketSender.isClosed())
-		SocketSender.close();
-		if(!SocketReceiver.isClosed())
+		if (!SocketSender.isClosed())
+			SocketSender.close();
+		if (!SocketReceiver.isClosed())
 			SocketReceiver.close();
 	}
 

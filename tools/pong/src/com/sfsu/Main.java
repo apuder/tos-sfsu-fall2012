@@ -23,42 +23,41 @@ public class Main {
 	 * 
 	 */
 
+	@SuppressWarnings("null")
 	public static void main(String[] args) {
 
 		String host = "127.0.0.1";
-		int port = 9876;
+		int portSender = 9876;
+		int portReceiver = 9875;
 		UDPComm objUDPComm = null;
-		String role = Consts.ROLE;
 		Pong p;
+		String name = "Sender";
 
 		if (args.length < 1) {
 			System.out.println("Defaul type is sender");
 			System.out.println("Usage: UDPClient " + "Now using host = " + host
-					+ ", Port# = " + port);
+					+ ", Ports# = " + portSender + "and " + portReceiver);
 		}
 
 		else {
-
-			role = String.valueOf(args[0]);
-			port = Integer.valueOf(args[1]).intValue();
-			host = String.valueOf(args[2]);
-
-			System.out.println("Usage: UDPClient " + "Now using host = " + host
-					+ ", Port# = " + port);
+			name = String.valueOf(args[0]);
+			portSender = Integer.valueOf(args[1]).intValue();
+			portReceiver = Integer.valueOf(args[2]).intValue();
+			host = String.valueOf(args[3]);
 		}
 
 		try {
 
-			if (role.equals("Receiver")) {
-				objUDPComm = new UDPComm(port);
-				objUDPComm.PrepareConnToReceive();
-			} else if (role.equals("Sender")) {
+			UDPComm objComm = new UDPComm();
+			objComm.setSenderPort(portSender);
+			objComm.setReceiverPort(portReceiver);
+			objComm.setHost(host);
+			objComm.PrepareConnToSend();
+			objComm.PrepareConnToReceive();
+			
 
-				objUDPComm = new UDPComm(port, host);
-				objUDPComm.PrepareConnToSend();
-			}
-
-			p = new Pong(objUDPComm, role);
+			p = new Pong(objComm, name);
+			p.setNameSelf(name);
 			p.play();
 
 		} catch (SocketException e) {
