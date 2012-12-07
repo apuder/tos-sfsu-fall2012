@@ -34,7 +34,7 @@ PORT create_process (void (*ptr_to_new_proc) (PROCESS, PARAM),
     new_port = create_new_port (new_proc);
     
     /* Compute linear address of new process' system stack */
-    esp = 640 * 1024 - (new_proc - pcb) * 30 * 1024;
+    esp = 640 * 1024 - (new_proc - pcb) * 16 * 1024;
 
 #define PUSH(x)    esp -= 4; \
                    poke_l (esp, (LONG) x);

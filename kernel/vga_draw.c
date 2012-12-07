@@ -521,39 +521,39 @@ void demo_graphics() {
     set_clear_color(WHITE);
 
     clear_graphics();
-    /*
     unsigned colors[960];
-	
+
     int m;
     for (m = 0; m < 960; m++) {
-            colors[m] = m % 16;
-    }
-	
-    read_scan_segment(0, 960, colors);
-	
-    set_clear_color(BLUE);
-	
-    clear_graphics();
-	
-    draw_scan_segment(0, 960, colors);
-	
-    int i, j, c;
-    for (i = 0, c = 0; i < get_width(); i+=8) {
-            draw_string(c++ % 16, i, i, "TOS Graphics ROCK!!!");
-    }
-	
-    for (i = 1; i <= 8; i++) {
-            draw_rect(RED, NONE, 1, i, i * 4, 17, 4);
+        colors[m] = m % 16;
     }
 
-    draw_ellipse(NONE, RED, 1, 100, 100, 80, 100);
-     */
+    read_scan_segment(0, 960, colors);
+
+    set_clear_color(BLUE);
+
+    clear_graphics();
+
+    draw_scan_segment(0, 960, colors);
+
+    int i, j, c;
+    for (i = 0, c = 0; i < get_width(); i += 8) {
+        draw_string(c++ % 16, i, i, "TOS Graphics ROCK!!!");
+    }
+
+    for (i = 1; i <= 8; i++) {
+        // draw_rect(RED, NONE, 1, i, i * 4, 17, 4);
+    }
+
+    // draw_ellipse(NONE, RED, 1, 100, 100, 80, 100);
     rectangle* bounds = NULL;
+    rectangle* bounds2 = NULL;
     //set_rect(bounds, 300, 300, 100, 100);
     //set_rect(bounds, 300, 300, 50, 50);
     set_rect(bounds, 200, 200, 50, 50);
-    //set_rect(bounds, 0, 0, 640, 480);
+    set_rect(bounds2, 0, 0, 640, 480);
     draw_line(YELLOW, 10, 0, 200, 200, 300, 300, bounds);
+    draw_line(RED, 10, 0, 0, 100, 302, 302, bounds2);
     //draw_arc(BLACK, 1, 200, 200, 50, 50, 0, 380, bounds);
     //draw_rect(BLUE, BLACK, 1, 200, 200, 100, 100, bounds);
     //draw_circle(BLUE, BLACK, 1, 250, 250, 50, bounds);

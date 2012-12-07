@@ -17,8 +17,6 @@ void write_pixel4p(unsigned x, unsigned y, tos_color c);
 
 /*************** FUNCTIONS FOR vga_modes ***************/
 
-#if 0
-
 static void dump(unsigned char *regs, unsigned count) {
     unsigned i;
 
@@ -98,7 +96,6 @@ void read_regs(unsigned char *regs) {
     (void) inportb(VGA_INSTAT_READ);
     outportb(VGA_AC_INDEX, 0x20);
 }
-#endif
 
 void write_regs(unsigned char *regs) {
     unsigned i;
@@ -144,8 +141,6 @@ void write_regs(unsigned char *regs) {
     outportb(VGA_AC_INDEX, 0x20);
 }
 
-#if 0
-
 void set_plane(unsigned p) {
     unsigned char pmask;
 
@@ -158,7 +153,6 @@ void set_plane(unsigned p) {
     outportb(VGA_SEQ_INDEX, 2);
     outportb(VGA_SEQ_DATA, 0x0f);
 }
-#endif
 
 /**
  * VGA framebuffer is at A000:0000, B000:0000, or B800:0000
@@ -186,11 +180,9 @@ unsigned get_fb_seg(void) {
     return seg;
 }
 
-/*
 void vmemwr(unsigned dst_off, unsigned char *src, unsigned count) {
     videoMemCpyData((unsigned char *) ((get_fb_seg() * 16) + dst_off), src, count);
 }
- */
 
 /**
  * Poke a byte to the video memory
@@ -216,8 +208,6 @@ void vpokew(unsigned int off, unsigned int val) {
 unsigned int vpeekb(unsigned int off) {
     return (videoPeekByte((unsigned char *) (16uL * get_fb_seg() + off)));
 }
-
-#if 0
 
 /**
  * write font to plane P4 (assuming planes are named P1, P2, P4, P8)
@@ -315,7 +305,6 @@ void read_scan_segment4p(
         *(colors++) = read_pixel_offset4p(offset);
     }
 }
-#endif
 
 /**
  * Draws length colors to a segment of the VGA starting at x, y
@@ -358,8 +347,6 @@ void write_pixel4p(unsigned int x, unsigned int y, tos_color c) {
     off = wd_in_bytes * y + (x >> 3);
     v_write_8(color, 0x80 >> (x % 8), off);
 }
-
-#if 0
 
 void write_char_8x8(unsigned char c, unsigned int x, unsigned int y, tos_color color) {
     unsigned wd_in_bytes, off, i, over;
@@ -486,26 +473,10 @@ void set_text_mode() {
         vpokeb(0xB800 + (i * 2 + 1), 7);
     cls();
 }
-#endif
 
 void set_vga_mode() {
-    cls();
-    write_regs(g_640x480x16);
-    tos_graphics.width = 640;
-    tos_graphics.height = 480;
-    tos_graphics.colors = 16;
-    tos_graphics.bytes_per_pixel = 1;
-    tos_graphics.write_pixel = write_pixel4p;
-    // tos_graphics.read_pixel_position = read_pixel_position4p;
-    // tos_graphics.read_pixel_offset = read_pixel_offset4p;
-    tos_graphics.write_segment = write_segment4p;
-    // tos_graphics.read_segment = read_scan_segment4p;
-    // tos_graphics.fill_segment = fill_segment4p;
-    // tos_graphics.write_char = write_char_8x8;
-    clear_graphics();
+    set_mode(G640x480x16);
 }
-
-#if 0
 
 /**
  * Change graphics/text modes.  Mode is changed through writing to a series
@@ -539,7 +510,6 @@ void set_mode(unsigned mode) {
             break;
     }
 }
-#endif 
 
 void set_clear_color(unsigned char c) {
     clear_color = c;
@@ -561,8 +531,6 @@ void clear_graphics(void) {
     }
 
 }
-
-#if 0
 
 void scroll_graphics(int lines) {
     unsigned char* base;
@@ -609,7 +577,6 @@ void draw_pixel(unsigned x, unsigned y, tos_color c) {
 void draw_scan_segment(unsigned offset, unsigned length, tos_color* colors) {
     write_segment4p(offset, length, colors);
 }
-#endif
 
 void draw_fill_segment(unsigned offset, unsigned length, tos_color color) {
     tos_graphics.fill_segment(color, length, offset);
