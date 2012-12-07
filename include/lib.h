@@ -14,8 +14,8 @@ void lib_wprintf(WINDOW* wnd, const char* fmt, ...);
 void lib_kprintf(const char* fmt, ...);
 void lib_vsprintf(char *buf, const char *fmt, va_list argp);
 char *lib_printnum(char *b, unsigned int u, int base,
-		   BOOL negflag, int length, BOOL ladjust,
-		   char padc, BOOL upcase);
+        BOOL negflag, int length, BOOL ladjust,
+        char padc, BOOL upcase);
 
 
 #endif

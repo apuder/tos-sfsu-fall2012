@@ -6,6 +6,9 @@
 #include <tos_util.h>
 #include <nll.h>
 #include <keycodes.h>
+#include <kernelinit.h>
+#include <vga.h>
+#include <vga_draw.h>
 
 #define TRUE	1
 #define FALSE	0
@@ -65,6 +68,14 @@ void kprintf(const char* fmt, ...);
 void poke_screen(int x, int y, WORD ch);
 void cursor_active(WINDOW* wnd);
 void cursor_inactive(WINDOW* wnd);
+
+/*=====>>> basicio.c <<<=====================================================*/
+
+void cls();
+void set_char_attr(unsigned char attr);
+//void output_char(unsigned char ch);
+//void output_string(const char *str);
+void kprintf(const char* fmt, ...);
 
 
 /*=====>>> process.c <<<====================================================*/
@@ -281,6 +292,7 @@ BOOL em_register_kboard_listener();
 void em_new_event(EM_Message * msg);
 void em_new_udp_packet(UDP * udp);
 void em_new_keystroke(unsigned char key);
+void init_em();
 
 /*=====>>> keyb.c <<<====================================================*/
 
@@ -311,6 +323,41 @@ void ne_handle_interrupt();
 void ne_config(char * params);
 void process_incoming_packet(void * data, int len);
 void send_udp(u_char_t * ip, u_int16_t port, u_int_t len, void * payload);
+void ne_do_send_udp(u_int16_t sp, u_int16_t dp, u_char_t * dip, u_int_t len, void * payload);
+
+/*=====>>> floppy.c <<<===================================================*/
+
+/* FSLL API */
+#define DISK_READ    0    /* Disk read */
+#define DISK_WRITE   1    /* Disk write */
+#define DRIVE_A      0    /* A Drive */
+#define DRIVE_B      1    /* B Drive */
+#define DRIVE_C      2    /* C Drive */
+#define DRIVE_D      3    /* D Drive */
+
+/* Return error codes */
+#define ERR_COMMAND  -1   /* fsdd io command error */
+#define ERR_DMA      -2   /* DMA setup error */
+#define ERR_DRIVE    -3   /* Drive error */
+#define ERR_SEEK     -4   /* Seek error */
+#define ERR_TRANSFER -5   /* Transfer error */
+#define ERR_PROTECT  -6   /* Write protected */
+#define ERR_RAM      -7   /* RAM disk error */
+
+#define FLOPPY_IRQ   0x66 /* IRQ6 */
+
+PORT floppy_port;
+
+typedef struct _Floppy_Message {
+    int rw_flag;
+    int drive;
+    int count; // Multiples of 512
+    int position; // 0 ~ 2879
+    MEM_ADDR address;
+} Floppy_Message;
+
+int fsdd_io(int rw_flag, int drive, int count, int position, MEM_ADDR address);
+int flag_isreal;
 
 /*=====>>> shell.c <<<===================================================*/
 
