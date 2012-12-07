@@ -139,7 +139,7 @@ void process_command(char* command) {
     }
 
     if (is_command(command, "pong")) {
-        init_pong();
+        init_pong(command + 5);
         return;
     }
     if (is_command(command, "chat")) {
