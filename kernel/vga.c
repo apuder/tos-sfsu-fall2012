@@ -16,6 +16,7 @@ void fill_segment4p(tos_color c, unsigned length, unsigned offset);
 void write_pixel4p(unsigned x, unsigned y, tos_color c);
 
 /*************** FUNCTIONS FOR vga_modes ***************/
+
 #if 0
 
 static void dump(unsigned char *regs, unsigned count) {
@@ -97,6 +98,7 @@ void read_regs(unsigned char *regs) {
     (void) inportb(VGA_INSTAT_READ);
     outportb(VGA_AC_INDEX, 0x20);
 }
+#endif
 
 void write_regs(unsigned char *regs) {
     unsigned i;
@@ -142,6 +144,8 @@ void write_regs(unsigned char *regs) {
     outportb(VGA_AC_INDEX, 0x20);
 }
 
+#if 0
+
 void set_plane(unsigned p) {
     unsigned char pmask;
 
@@ -154,6 +158,7 @@ void set_plane(unsigned p) {
     outportb(VGA_SEQ_INDEX, 2);
     outportb(VGA_SEQ_DATA, 0x0f);
 }
+#endif
 
 /**
  * VGA framebuffer is at A000:0000, B000:0000, or B800:0000
@@ -181,18 +186,23 @@ unsigned get_fb_seg(void) {
     return seg;
 }
 
+#if 0
+
 void vmemwr(unsigned dst_off, unsigned char *src, unsigned count) {
     videoMemCpyData((unsigned char *) ((get_fb_seg() * 16) + dst_off), src, count);
 }
 
+#endif
+
 /**
  * Poke a byte to the video memory
  */
-
 void vpokeb(unsigned int off, unsigned int val) {
     unsigned char* base = VGA_BASE;
     videoPokeByte((base + off), val);
 }
+
+#if 0
 
 void vpokes(unsigned int off, unsigned int val) {
     unsigned char* base = VGA_BASE;
@@ -206,14 +216,14 @@ void vpokew(unsigned int off, unsigned int val) {
     videoPokeLong((base + off), val);
 }
 
-#if 0
-
 /**
  * Peek a byte from the video memory
  */
 unsigned int vpeekb(unsigned int off) {
     return (videoPeekByte((unsigned char *) (16uL * get_fb_seg() + off)));
 }
+
+#if 0
 
 /**
  * write font to plane P4 (assuming planes are named P1, P2, P4, P8)
@@ -327,6 +337,7 @@ void write_segment4p(unsigned offset, unsigned length, tos_color* colors) {
         }
     }
 }
+#endif 
 
 void v_write_8(tos_color color, unsigned char mask, unsigned int offset) {
     outportb(VGA_GC_INDEX, 0);
@@ -353,6 +364,8 @@ void write_pixel4p(unsigned int x, unsigned int y, tos_color c) {
     off = wd_in_bytes * y + (x >> 3);
     v_write_8(color, 0x80 >> (x % 8), off);
 }
+
+#if 0
 
 void write_char_8x8(
         unsigned char c, unsigned int x, unsigned int y, tos_color color) {
@@ -480,6 +493,26 @@ void set_text_mode() {
         vpokeb(0xB800 + (i * 2 + 1), 7);
     cls();
 }
+#endif
+
+void set_vga_mode() {
+    cls();
+    write_regs(g_640x480x16);
+    tos_graphics.width = 640;
+    tos_graphics.height = 480;
+    tos_graphics.colors = 16;
+    tos_graphics.bytes_per_pixel = 1;
+    tos_graphics.write_pixel = write_pixel4p;
+    // tos_graphics.read_pixel_position = read_pixel_position4p;
+    // tos_graphics.read_pixel_offset = read_pixel_offset4p;
+    // tos_graphics.write_segment = write_segment4p;
+    // tos_graphics.read_segment = read_scan_segment4p;
+    // tos_graphics.fill_segment = fill_segment4p;
+    // tos_graphics.write_char = write_char_8x8;
+    clear_graphics();
+}
+
+#if 0
 
 /**
  * Change graphics/text modes.  Mode is changed through writing to a series
@@ -608,8 +641,6 @@ unsigned get_height() {
     return tos_graphics.height;
 }
 
-#if 0
-
 /**
  * Set the color pallette at index
  */
@@ -637,4 +668,9 @@ void set_palvec(int start, int num, int *pal) {
 void get_palvec(int start, int num, int *pal) {
 
 }
-#endif
+
+void test_vga() {
+    set_vga_mode();
+    demo_graphics();
+}
+

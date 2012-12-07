@@ -384,4 +384,8 @@ void init_train(WINDOW* wnd);
 
 void init_pacman(WINDOW* wnd, int num_ghosts);
 
+/*=====>>> vga.c <<<==================================================*/
+
+void test_vga();
+
 #endif

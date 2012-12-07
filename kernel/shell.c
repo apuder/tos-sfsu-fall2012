@@ -152,6 +152,11 @@ void process_command(char* command) {
         return;
     }
 
+    if (is_command(command, "vga")) {
+        test_vga();
+        return;
+    }
+
     if (is_command(command, "help")) {
         wprintf(&shell_wnd, "Commands:\n");
         wprintf(&shell_wnd, "  - help   show this help\n");
