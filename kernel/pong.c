@@ -10,7 +10,7 @@
 #define PONG_MOVE_DOWN 97
 
 #define OUR_PORT (u_int16_t) 9876
-#define THEIR_PORT (u_int16_t) 9876
+#define THEIR_PORT (u_int16_t) 9875
 
 char * pong_user_name;
 BOOL pong_init = 0;
