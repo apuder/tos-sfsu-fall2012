@@ -139,10 +139,14 @@ void process_command(char* command) {
         return;
     }
 
-    if (is_command(command, "pong")) {
+    if (is_command(command, "pong ")) {
         init_pong(command + 5);
         return;
+    } else if (is_command(command, "pong")) {
+        wprintf(&shell_wnd, "You must also specify a name!\n");
+        return;
     }
+
     if (is_command(command, "chat")) {
         init_chat(); //hello
         return;
