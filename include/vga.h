@@ -50,23 +50,23 @@
 #define G360x480x256 8
 #define G640x480x2   9
 
-#define BLACK			0x0
-#define BLUE			0x1
-#define GREEN			0x2
-#define CYAN			0x3
-#define RED				0x4
-#define VIOLET			0x5
-#define YELLOW			0x6
-#define WHITE			0x7
-#define GRAY			0x8
-#define INTENSE_BLUE	0x9
+#define BLACK		0x0
+#define BLUE		0x1
+#define GREEN		0x2
+#define CYAN		0x3
+#define RED		0x4
+#define VIOLET		0x5
+#define YELLOW		0x6
+#define WHITE		0x7
+#define GRAY		0x8
+#define INTENSE_BLUE    0x9
 #define INTENSE_GREEN	0xa
 #define INTENSE_CYAN	0xb
-#define INTENSE_RED		0xc
+#define INTENSE_RED	0xc
 #define INTENSE_VIOLET	0xd
 #define INTENSE_YELLOW	0xe
 #define INTENSE_WHITE	0xf
-#define NONE			0x10
+#define NONE		0x10
 
 extern unsigned char* VGA_BASE;
 
