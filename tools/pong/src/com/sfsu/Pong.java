@@ -15,6 +15,7 @@ public class Pong implements KeyListener {
 	private final int PADDLE_WIDTH = 5;
 	private final int PADDLE_HEIGHT = 20;
 	private final int PUCK_RADIUS = 10;
+                        private final int SCALE =10;
 
 	Graphics g;
 	UDPComm objComm;
@@ -24,10 +25,10 @@ public class Pong implements KeyListener {
 	private int x2 = 795; // location of player B's paddle
 	private int y2 = 80;
 
-	private double x = 60.0; // location of ball
-	private double y = 140.0;
-	private double vx = 2.0; // velocity of ball
-	private double vy = 1.0;
+	private int x = 60; // location of ball
+	private int y = 140;
+	private int vx = 2; // velocity of ball
+	private int vy = 1;
 
 	private int playerOneScore;
 	private int playerTwoScore;
@@ -101,14 +102,23 @@ public class Pong implements KeyListener {
 		g.setColor(Color.white);
 		g.fillRect(x2, y2, PADDLE_WIDTH, PADDLE_HEIGHT);
 		g.setColor(Color.white);
-		g.fillOval((int) x, (int) y, PUCK_RADIUS, PUCK_RADIUS);
+		g.fillOval( x, y, PUCK_RADIUS, PUCK_RADIUS);
 		g.drawString(nameOther + " -->" + Integer.toString(playerTwoScore), 5,
 				10);
 		g.drawString(nameSelf + " -->" + Integer.toString(playerOneScore), 700,
 				10);
 
 	}
-
+        public void drawPaddle(int x, int y)
+        {
+            g.setColor(Color.white);
+            g.fillRect(x, y, PADDLE_WIDTH, PADDLE_HEIGHT);
+        }
+               public void drawBall(int x , int y)
+{
+                                              //  g.setColor(Color.white);
+		g.fillOval( x, y, PUCK_RADIUS, PUCK_RADIUS);
+}
 	public boolean detectCollision() {
 		// Test for collision with first paddle
 		if (y + vy > y1 && y + vy < y1 + PADDLE_HEIGHT
@@ -188,9 +198,13 @@ public class Pong implements KeyListener {
 
 			x = x + vx;
 			y = y + vy;
+                        //drawBall(x, y);
+                        draw();
 			this.y1=objReceiver.getY1Paddle()*10;
 			
-			draw();
+			
+                                                                         //drawPaddle(x1, y1);
+                                                                                 //drawPaddle(x2,y2);
 
 			try {
 

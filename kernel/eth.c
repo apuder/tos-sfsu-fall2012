@@ -7,7 +7,6 @@
 
 BOOL is_ethernet_header(void *buffer,u_int_t len ,ETH *ether)
 {
-	
 	u_char_t *buff = (u_char_t *)(buffer);
 	memcpy_tos(ether->dst ,buff,ETH_ADDR_LEN);
 	memcpy_tos(ether->src , (u_char_t *)(buff + ETH_ADDR_LEN),ETH_ADDR_LEN);

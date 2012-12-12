@@ -72,69 +72,69 @@ void print_udp_header(UDP *ud,u_char_t *src,u_char_t *dst)
 
 void print_packet(void *packet,u_int_t len)
 {
-	u_char_t *pkt = (u_char_t *)packet;
-	int i;
-	for(i=0;i<len;i++)
-	{
-		kprintf("%02x:", pkt[i]);
-		if((i%16 == 0 && i!=0) || i==len-1 )
-        	 kprintf("\n");
+        u_char_t *pkt = (u_char_t *)packet;
+        int i;
+        for(i=0;i<len;i++)
+        {
+                kprintf("%02x:", pkt[i]);
+                if((i%16 == 0 && i!=0) || i==len-1 )
+                 kprintf("\n");
     }
-   kprintf("\n");
+    kprintf("\n");
 }
 
 
 void print_udp_data(UDP *ud)
  {
-	int i , j;
+    int i , j;
 
- 	 u_char_t *buf = ud->payload;
-	 u_int_t data_length = (ntohs_tos(ud->len)-UDP_HEAD_MIN_LEN);
-	 kprintf("%d",data_length);
+     u_char_t *buf = ud->payload;
+     u_int_t data_length = (ntohs_tos(ud->len)-UDP_HEAD_MIN_LEN);
+     kprintf("%d",data_length);
 
-	 kprintf("\n###################################################################\n");
-	 for(i=0 ; i < data_length ; i++)
-		  {
-			  if( i!=0 && i%16==0)   //if one line of hex printing is complete...
-				  {
-				  	  kprintf( "         ");
-					  for(j=i-16 ; j<i ; j++)
-					  {
-						  if(buf[j]>=32 && buf[j]<=128)
-							  kprintf("%c",(u_char_t)buf[j]); //if its a number or alphabet
+     kprintf("\n###################################################################\n");
+     for(i=0 ; i < data_length ; i++)
+              {
+                      if( i!=0 && i%16==0)   //if one line of hex printing is complete...
+                              {
+                                      kprintf( "         ");
+                                      for(j=i-16 ; j<i ; j++)
+                                      {
+                                              if(buf[j]>=32 && buf[j]<=128)
+                                                      kprintf("%c",(u_char_t)buf[j]); //if its a number or alphabet
 
-						  else kprintf("."); //otherwise print a dot
-					  }
-					  kprintf( "\n");
-				  }
+                                              else kprintf("."); //otherwise print a dot
+                                      }
+                                      kprintf( "\n");
+                              }
 
-				  if(i%16==0) kprintf("   ");
-				  kprintf(" %02X",(u_int_t)buf[i]);
+                              if(i%16==0) kprintf("   ");
+                              kprintf(" %02X",(u_int_t)buf[i]);
 
-				  if( i==data_length-1)  //print the last spaces
-				  {
-					  for(j=0;j<15-i%16;j++)
-					  {
-						  kprintf("   "); //extra spaces
-					  }
+                              if( i==data_length-1)  //print the last spaces
+                              {
+                                      for(j=0;j<15-i%16;j++)
+                                      {
+                                              kprintf("   "); //extra spaces
+                                      }
 
-					  kprintf("         ");
+                                      kprintf("         ");
 
-					  for(j=i-i%16 ; j<=i ; j++)
-					  {
-						  if(buf[j]>=32 && buf[j]<=128)
-						  {
-							  kprintf("%c",(u_char_t)buf[j]);
-						  }
-						  else
-						  {
-							  kprintf(".");
-						  }
-					  }
+                                      for(j=i-i%16 ; j<=i ; j++)
+                                      {
+                                              if(buf[j]>=32 && buf[j]<=128)
+                                              {
+                                                      kprintf("%c",(u_char_t)buf[j]);
+                                              }
+                                              else
+                                              {
+                                                      kprintf(".");
+                                              }
+                                      }
 
-					  kprintf("\n" );
-				  }
-			  }
-		  }
+                                      kprintf("\n" );
+                              }
+                      }
+              }
 
 #endif

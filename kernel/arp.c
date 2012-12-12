@@ -1,6 +1,8 @@
 #ifndef _ARP_C_
 #define _ARP_C_
-
+/* 
+ * functions implementing arp protocol
+ */
 #include <nll.h>
 
 #ifdef NO_TOS
@@ -10,7 +12,7 @@
 //! The ARP cache maximum entries.
 #define ARP_TABLE_SIZE   10
 
-#define ENTRY_INITIALIZED 0xAA
+#define ENTRY_INITIALIZED 0xAA    // flag to indicate initialization of entry
 
 static struct {
     unsigned char init;
@@ -19,6 +21,7 @@ static struct {
 
 } arp_table[ARP_TABLE_SIZE];
 
+/* printing the entire arp cache */
 void show_arp_table() {
     int i;
     for (i = 0; i < 3; i++) {
@@ -28,6 +31,14 @@ void show_arp_table() {
                 arp_table[i].mac[3], arp_table[i].mac[4], arp_table[i].mac[5]);
     }
 }
+
+/* 
+ * checking if a packet is of type arp request 
+ *@ param1 void pointer to a packet 
+ * @param2 length of the packet
+ * @param3 a pointer to an arp structure 
+ * @returns true or false 
+ */
 
 BOOL is_arp_request(void *buffer, u_int_t len, ARP *arp_pkt) {
 
@@ -50,6 +61,15 @@ BOOL is_arp_request(void *buffer, u_int_t len, ARP *arp_pkt) {
   	memcpy_tos(arp_pkt->ip_dest, (u_char_t *) (arpheader + 24), IP_LEN);
     	return TRUE;
 }
+
+/* 
+ * checking if a packet is of type arp reply 
+ *@ param1 void pointer to a packet 
+ * @param2 length of the packet
+ * @param3 a pointer to an arp structure to be populated with the info.
+ * @returns true or false
+ */
+
 
 BOOL is_arp_reply(void *buffer, u_int_t len, ARP *arp_pkt)
 {
@@ -74,19 +94,27 @@ BOOL is_arp_reply(void *buffer, u_int_t len, ARP *arp_pkt)
   	return TRUE;
   }
 
-
+/*
+ * method used to and to the arp cache. there are two ways of doing it.
+ * 1. if there is already ip entry in the cache update it with the new mac address
+ * 2. if there is no any slot with the given ip address copy both the ip and mac addresses.
+ * @param1 a char pointer to the ip address
+ * @param2 char pointer to the mac address
+ */
 
 
 void arp_add_cache(u_char_t *ip, u_char_t *mac) {
     int i;
     for (i = 0; i < ARP_TABLE_SIZE; i++) {
-        if (memcmp_tos(arp_table[i].ip, ip, IP_LEN)) {
+        if (memcmp_tos(arp_table[i].ip, ip, IP_LEN)) //if Ip entry present  copy the mac address
+        {
             memcpy_tos(arp_table[i].mac, mac, ETH_ADDR_LEN);
             return;
         }
     }
     for (i = 0; i < ARP_TABLE_SIZE; i++) {
-        if (arp_table[i].init != ENTRY_INITIALIZED) {
+        if (arp_table[i].init != ENTRY_INITIALIZED)  // empty slot copy both the ip and mac
+        { 
             memcpy_tos(arp_table[i].ip, ip, IP_LEN);
             memcpy_tos(arp_table[i].mac, mac, ETH_ADDR_LEN);
             arp_table[i].init = ENTRY_INITIALIZED;
@@ -94,6 +122,12 @@ void arp_add_cache(u_char_t *ip, u_char_t *mac) {
         }
     }
 }
+
+/*
+ * This method is used for the translation of an ip address to a corresponding mac address.
+ * @param1 char pointer to the ethernet address
+ * @param2 char pinter to the ip address.
+  */
 
 BOOL arp_ip_to_mac(u_char_t *eth_addr, u_char_t *ip) {
     int i;
@@ -104,6 +138,17 @@ BOOL arp_ip_to_mac(u_char_t *eth_addr, u_char_t *ip) {
         }
     return FALSE;
 }
+
+/*
+ * method used to create an arp packet.
+ * @param1 destination ip address
+ * @param2 destination mac address
+ * @param3 host or source ip address
+ * @param4 source or host mac address
+ * @param5 operation type (request or reply)
+ * @param6 pointer to a structure of ARP to be populated with info
+ * @return the size of the created packet
+ */
 
 u_int_t create_arp_packet(u_char_t *ip_to, u_char_t *eth_to, u_char_t *host_ip, \
   u_char_t *host_mac, u_int16_t arp_op, ARP *packet) {
