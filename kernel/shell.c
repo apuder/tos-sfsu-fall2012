@@ -2,10 +2,11 @@
 #include <keycodes.h>
 
 static WINDOW shell_wnd = {0, 21, 40, 4, 0, 0, CURSOR_ACTIVE};
-WINDOW* shell_wnd_ptr = &shell_wnd;
 static WINDOW train_wnd = {0, 0, 80, 8, 0, 0, CURSOR_EMPTY};
 static WINDOW pacman_wnd = {61, 8, 0, 0, 0, 0, CURSOR_EMPTY};
 static WINDOW divider_wnd = {0, 20, 80, 1, 0, 0, CURSOR_EMPTY};
+
+WINDOW* shell_wnd_ptr = &shell_wnd;
 
 void run_train_app(WINDOW* wnd) {
     static int already_run = 0;
@@ -138,10 +139,19 @@ void process_command(char* command) {
         return;
     }
 
-    if (is_command(command, "pong")) {
-        init_pong(command + 5);
+    if (is_command(command, "fireworks")) {
+        start_win_fireworks();
         return;
     }
+
+    if (is_command(command, "pong ")) {
+        init_pong(command + 5);
+        return;
+    } else if (is_command(command, "pong")) {
+        wprintf(&shell_wnd, "You must also specify a name!\n");
+        return;
+    }
+
     if (is_command(command, "chat")) {
         init_chat(); //hello
         return;
@@ -154,6 +164,11 @@ void process_command(char* command) {
 
     if (is_command(command, "vga")) {
         test_vga();
+        return;
+    }
+
+    if (is_command(command, "clear")) {
+        clear_window(shell_wnd_ptr);
         return;
     }
 
@@ -243,7 +258,7 @@ void shell_process(PROCESS self, PARAM param) {
                             process_input = 0;
                             break;
                         default:
-                            if (i == 80)
+                            if (i == shell_wnd.width)
                                 break;
                             buffer[i++] = ch;
                             break;
