@@ -139,7 +139,7 @@ void process_command(char* command) {
     }
 
     if (is_command(command, "pong")) {
-        init_pong();
+        init_pong(command + 5);
         return;
     }
     if (is_command(command, "chat")) {
@@ -149,6 +149,11 @@ void process_command(char* command) {
 
     if (is_command(command, "coin")) {
         pong_coin_inserted();
+        return;
+    }
+
+    if (is_command(command, "vga")) {
+        test_vga();
         return;
     }
 
