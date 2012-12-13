@@ -106,7 +106,7 @@ public class ChatWindow extends JFrame implements ActionListener {
 			UDPComm objComm = new UDPComm();
 			objComm.setSenderPort(portSender);
 			objComm.setReceiverPort(portReceiver);
-			objComm.setHost("localhost");
+			objComm.setHost(host);
 			objComm.PrepareConnToSend();
 			objComm.PrepareConnToReceive();
 
@@ -134,8 +134,8 @@ public class ChatWindow extends JFrame implements ActionListener {
 	 */
 	public void actionPerformed(ActionEvent e) {
 		if (e.getSource() == btnSend) {
-
-			byte[] data = curText.getText().trim().getBytes();
+			String strWEnd =  curText.getText().trim() + "\0";
+			byte[] data = strWEnd.getBytes();
 			chatList.setText(chatList.getText() + "\nme :"
 					+ curText.getText().trim());
 			objSender.btnPressed(data);
