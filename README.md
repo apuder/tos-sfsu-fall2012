@@ -23,29 +23,29 @@ problems the best place to troubleshoot is at the [TOS website](ttp://pear.sfsu.
 
 ###Bochs command line
 	Tab to change from different windows
-####Running Chat from shell
+#####Running Chat from shell
 		> chat
-####Running Pong from shell
+#####Running Pong from shell
 		> pong "username"
 		> coin
 
-####Inside chat window
+#####Inside chat window
 		To change name of user: > name "username"
-####Inside pong window
+#####Inside pong window
 		"Q" to move paddle up
 		"A" to move paddle down 
 
 
-### Chat in terminal
+###Chat in terminal
 	> java -jar tools/UDPChat/chat.jar incomingPort outgoingPort IP
-####recommended: 
+#####recommended: 
  		> java -jar tools/UDPChat/chat.jar 10001 10002 192.168.1.2
 
-####To change the name of the user within chat window:
+#####To change the name of the user within chat window:
  		name "username"
 
-##Pong in terminal
+###Pong in terminal
 	> java -jar tools/pong/pong.jar Java incomingPort outgoingPort IP
-####recommended:
+#####recommended:
 		> java -jar tools/pong/pong.jar Java 9876 9875 192.168.1.2
 	Once inside the window use up and down arrows on the keyboard to control the paddle
