@@ -169,7 +169,9 @@ void output_string(WINDOW* wnd, const char *str) {
         output_char(wnd, *str++);
 }
 
-
+void win_draw_pixel(WINDOW * wnd, unsigned int x, unsigned int y, tos_color color) {
+    draw_pixel(wnd->x + x, wnd->y + y, color);
+}
 
 /*
  * There is not need to make any changes to the code below,

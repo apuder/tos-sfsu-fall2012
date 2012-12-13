@@ -68,6 +68,24 @@
 #define INTENSE_WHITE	0xf
 #define NONE		0x10
 
+#define COLOR_BLACK		0x00
+#define COLOR_BLUE		0x01
+#define COLOR_GREEN		0x02
+#define COLOR_CYAN		0x03
+#define COLOR_RED		0x04
+#define COLOR_VIOLET		0x05
+#define COLOR_YELLOW		0x06
+#define COLOR_WHITE		0x07
+#define COLOR_GRAY		0x08
+#define COLOR_INTENSE_BLUE      0x09
+#define COLOR_INTENSE_GREEN	0x0A
+#define COLOR_INTENSE_CYAN	0x0B
+#define COLOR_INTENSE_RED	0x0C
+#define COLOR_INTENSE_VIOLET	0x0D
+#define COLOR_INTENSE_YELLOW	0x0E
+#define COLOR_INTENSE_WHITE     0x0F
+#define COLOR_NONE              0x10
+
 extern unsigned char* VGA_BASE;
 
 typedef unsigned char tos_color;

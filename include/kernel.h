@@ -392,4 +392,8 @@ void init_pacman(WINDOW* wnd, int num_ghosts);
 void init_vga_mode();
 void test_vga();
 
+/*=====>>> fireworks.c <<<==================================================*/
+
+void start_win_fireworks();
+
 #endif

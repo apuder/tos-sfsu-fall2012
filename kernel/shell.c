@@ -139,6 +139,11 @@ void process_command(char* command) {
         return;
     }
 
+    if (is_command(command, "fireworks")) {
+        start_win_fireworks();
+        return;
+    }
+
     if (is_command(command, "pong ")) {
         init_pong(command + 5);
         return;
