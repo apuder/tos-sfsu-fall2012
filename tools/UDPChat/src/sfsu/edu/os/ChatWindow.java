@@ -8,6 +8,7 @@ import java.awt.event.ActionListener;
 import javax.swing.JButton;
 import javax.swing.JCheckBox;
 import javax.swing.JFrame;
+import javax.swing.JLabel;
 import javax.swing.JPanel;
 import javax.swing.JScrollPane;
 import javax.swing.JTextArea;
@@ -20,13 +21,15 @@ public class ChatWindow extends JFrame implements ActionListener {
 	private static final long serialVersionUID = 1L;
 	// Creating various components
 	JButton btnSend = new JButton("Send");
-	JCheckBox exitChat = new JCheckBox("Exit Chat !!");
-	JTextArea curText = new JTextArea("Begin chat by - name 'your name'");
+	JButton exitChat = new JButton("Exit");
+	JTextArea curText = new JTextArea();
 	JTextArea chatList = new JTextArea(" ");
 	JPanel bottomPanel = new JPanel();
 	JPanel topPanel = new JPanel();
 	JPanel holdAll = new JPanel();
+	JLabel rename = new JLabel("To change user name type \"name 'username'\"");
 	JScrollPane sbrText = new JScrollPane(chatList);
+	private String userName = "me";
 
 	// Creating sender and receiver
 	SenderThread objSender;
@@ -39,8 +42,9 @@ public class ChatWindow extends JFrame implements ActionListener {
 		objSender = new SenderThread(objComm);
 
 		bottomPanel.setLayout(new FlowLayout());
-		bottomPanel.add(exitChat);
 		bottomPanel.add(btnSend);
+		bottomPanel.add(exitChat);
+		bottomPanel.add(rename);
 
 		topPanel.setLayout(new FlowLayout());
 		topPanel.add(chatList);
@@ -86,7 +90,7 @@ public class ChatWindow extends JFrame implements ActionListener {
 
 		if (args.length < 1) {
 			System.out.println("Usage: UDPClient " + "Now using host = " + host
-					+ ", SenderPort# = " + portSender + "ReceiverPort is "
+					+ ", SenderPort = " + portSender + "  ReceiverPort = "
 					+ portReceiver);
 		}
 		// Get the port number to use from the command line
@@ -95,9 +99,9 @@ public class ChatWindow extends JFrame implements ActionListener {
 			portSender = Integer.valueOf(args[0]).intValue();
 			portReceiver = Integer.valueOf(args[1]).intValue();
 			host = String.valueOf(args[2]);
-			System.out.println("Usage: UDPClient " + "Now using host = " + host
-					+ ", Port# => " + "portSender" + portSender
-					+ "ReceiverPort is " + portReceiver);
+			System.out.println("Usage: UDPClient " + "\nhost = " + host
+					+ " Sending Port =  " + portSender
+					+ "  Recieving Port = " + portReceiver);
 		}
 
 		// Get the IP address of the local machine - we will use this as the
@@ -133,24 +137,22 @@ public class ChatWindow extends JFrame implements ActionListener {
 	 *            the action event.
 	 */
 	public void actionPerformed(ActionEvent e) {
+		
 		if (e.getSource() == btnSend) {
-			String strWEnd =  curText.getText().trim() + "\0";
-			byte[] data = strWEnd.getBytes();
-			chatList.setText(chatList.getText() + "\nme :"
+			String userMessage =  curText.getText().trim() + "\0";
+			byte[] data = userMessage.getBytes();
+			if(userMessage.startsWith("name ")){
+				this.userName = userMessage.substring(5, userMessage.length()-1);
+			}
+			chatList.setText(chatList.getText() + "\n" + this.userName +" : "
 					+ curText.getText().trim());
 			objSender.btnPressed(data);
 			curText.setText("");
 		}
 
 		if (e.getSource() == exitChat) {
-			curText.setText("Exiting chat bye. !!!");
-			try {
-				Thread.sleep(100);
-				//System.exit(0);
-			} catch (InterruptedException e1) {
-
-				e1.printStackTrace();
-			}
+			curText.setText("Exiting Chat");
+			System.exit(0);
 		}
 	}
 
@@ -168,7 +170,7 @@ public class ChatWindow extends JFrame implements ActionListener {
 				sender = text.substring(5);
 				
 				// isAssignedName = false;
-				text = " Joined the chat";
+				text = " joined the chat";
 
 			}
 			chatList.setText(chatList.getText() + "\n" + sender + " : " + text);

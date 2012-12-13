@@ -2,8 +2,8 @@
 #include <assert.h>
 #include <keycodes.h>
 
-#define DISP_PORT (u_int16_t) 9876
-#define LISTEN_PORT (u_int16_t) 9875
+#define DISP_PORT (u_int16_t) 10002
+#define LISTEN_PORT (u_int16_t) 10001
 
 BOOL chat_init = 0;
 PORT chat_port;
