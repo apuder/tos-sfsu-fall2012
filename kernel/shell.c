@@ -4,7 +4,7 @@
 static WINDOW shell_wnd = {0, 40, 40, 20, 0, 0, CURSOR_ACTIVE, TRUE, "Shell"};
 static WINDOW train_wnd = {0, 0, 80, 8, 0, 0, CURSOR_EMPTY};
 static WINDOW pacman_wnd = {61, 8, 0, 0, 0, 0, CURSOR_EMPTY};
-static WINDOW divider_wnd = {0, 8, 80, 1, 0, 0, CURSOR_EMPTY};
+static WINDOW divider_wnd = {0, 20, 80, 1, 0, 0, CURSOR_EMPTY};
 
 WINDOW* shell_wnd_ptr = &shell_wnd;
 
@@ -207,8 +207,8 @@ void shell_process(PROCESS self, PARAM param) {
     for (i = 0; i < 5; i++)
         output_char(&shell_wnd, 14);
 
-    wprintf(&shell_wnd, "TOS Shell\n");
-    wprintf(&shell_wnd, "---------\n\n");
+//    wprintf(&shell_wnd, "TOS Shell\n");
+//    wprintf(&shell_wnd, "---------\n\n");
 
     Keyb_Message msg;
     EM_Message * em_msg;
