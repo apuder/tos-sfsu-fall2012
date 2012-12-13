@@ -26,7 +26,7 @@ void poke_screen(int x, int y, WORD ch) {
 }
 
 WORD peek_screen(int x, int y) {
-    assert(x < CONSOLE_CHARS && y < CONSOLE_LINES);
+    assert(x < CONSOLE_CHARS && y < CONSOLE_CHARS);
     // return peek_w(SCREEN_BASE_ADDR + y * SCREEN_WIDTH * 2 + x * 2);
     return SCREEN[x][y];
 }
@@ -43,7 +43,7 @@ WORD peek_screen(int x, int y) {
 #endif
 
 BOOL window_is_valid(WINDOW * wnd) {
-    return (BOOL) (wnd->x + wnd->width <= 80 && wnd->y + wnd->height <= 25);
+    return (BOOL) (wnd->x + wnd->width <= CONSOLE_CHARS && wnd->y + wnd->height <= CONSOLE_CHARS);
 }
 
 void scroll_window(WINDOW* wnd) {
