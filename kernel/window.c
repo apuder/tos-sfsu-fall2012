@@ -15,10 +15,10 @@ WORD default_color = 0x0F;
 #include <vga.h>
 #define BLANK_CHAR 219
 
-WORD SCREEN[80][25];
+WORD SCREEN[CONSOLE_CHARS][CONSOLE_LINES];
 
 void poke_screen(int x, int y, WORD ch) {
-    assert(x < 80 && y < 25);
+    assert(x < CONSOLE_CHARS && y < CONSOLE_LINES);
     // poke_w(SCREEN_BASE_ADDR + y * SCREEN_WIDTH * 2 + x * 2, ch);
     SCREEN[x][y] = ch;
     tos_graphics.write_char(BLANK_CHAR, x * 8, y * 8, BLACK);
@@ -26,7 +26,7 @@ void poke_screen(int x, int y, WORD ch) {
 }
 
 WORD peek_screen(int x, int y) {
-    assert(x < 80 && y < 25);
+    assert(x < CONSOLE_CHARS && y < CONSOLE_LINES);
     // return peek_w(SCREEN_BASE_ADDR + y * SCREEN_WIDTH * 2 + x * 2);
     return SCREEN[x][y];
 }

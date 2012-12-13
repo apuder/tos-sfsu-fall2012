@@ -23,6 +23,14 @@
 
 #define VGA_MODE_ENABLED 1
 
+#if VGA_MODE_ENABLED
+#define CONSOLE_LINES 60
+#define CONSOLE_CHARS 80
+#else
+#define CONSOLE_LINES 25
+#define CONSOLE_CHARS 80
+#endif
+
 typedef int BOOL;
 
 /*=====>>> stdlib.c <<<=====================================================*/
@@ -53,6 +61,7 @@ typedef struct {
     int width, height;
     int cursor_x, cursor_y;
     char cursor_char, show_cursor;
+    char * title;
 } WINDOW;
 
 extern WINDOW* kernel_window;

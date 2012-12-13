@@ -1,7 +1,7 @@
 #include <kernel.h>
 #include <keycodes.h>
 
-static WINDOW shell_wnd = {0, 21, 40, 4, 0, 0, CURSOR_ACTIVE};
+static WINDOW shell_wnd = {0, 40, 40, 20, 0, 0, CURSOR_ACTIVE, TRUE, "Shell"};
 static WINDOW train_wnd = {0, 0, 80, 8, 0, 0, CURSOR_EMPTY};
 static WINDOW pacman_wnd = {61, 8, 0, 0, 0, 0, CURSOR_EMPTY};
 static WINDOW divider_wnd = {0, 8, 80, 1, 0, 0, CURSOR_EMPTY};
