@@ -8,7 +8,7 @@
 BOOL chat_init = 0;
 PORT chat_port;
 WINDOW disp_chat_wnd = {41, 40, 39, 19, 0, 0, CURSOR_EMPTY};
-WINDOW in_mess_wnd = {41, 58, 39, 1, 0, 0, CURSOR_INACTIVE};
+WINDOW in_mess_wnd = {41, CONSOLE_LINES - 2, 39, 1, 0, 0, CURSOR_INACTIVE};
 unsigned char user_name[10] = "User";
 unsigned char opp_name[10] = "Opponent";
 
