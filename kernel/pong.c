@@ -17,6 +17,7 @@ BOOL pong_init = 0;
 BOOL coin_inserted = 0;
 PORT pong_port;
 WINDOW pong_wnd = {0, 0, 80, 20, 0, 0, ' '};
+WINDOW pong_score_wnd = {0, 0, 80, 2, 0, 0, ' '};
 
 void pong_coin_inserted() {
     coin_inserted = 1;
@@ -60,12 +61,14 @@ void pong_process(PROCESS self, PARAM param) {
     em_register_kboard_listener();
     em_register_udp_listener(OUR_PORT);
 
+    unsigned char opt;
     unsigned char our_paddle = 0;
     unsigned char their_paddle = 0;
     unsigned char ball_x = 40;
     unsigned char ball_y = 10;
     unsigned char our_score = 0;
     unsigned char their_score = 0;
+    unsigned char * opponent_name;
 
     unsigned char output_data[2];
 
@@ -118,13 +121,21 @@ void pong_process(PROCESS self, PARAM param) {
                     their_paddle = (unsigned char) *(++byte);
                     their_score = (unsigned char) *(++byte);
                     our_score = (unsigned char) *(++byte);
+                    our_score = (unsigned char) 0;
 
                     //kprintf("Ball %d,%d Paddle %d", ball_x, ball_y, their_paddle);
                     poke_screen(79, their_paddle, (unsigned short) PONG_PADDLE | PONG_BACKGROUND);
                     poke_screen(ball_x, ball_y, (unsigned short) PONG_BALL | PONG_BACKGROUND);
 
-                    poke_screen(0, 20, (unsigned short) our_score | PONG_BACKGROUND);
-                    poke_screen(0, 60, (unsigned short) their_score | PONG_BACKGROUND);
+                    // poke_screen(20, 0, (unsigned short) our_score | PONG_BACKGROUND);
+                    // poke_screen(60, 0, (unsigned short) their_score | PONG_BACKGROUND);
+                    wprintf(&pong_score_wnd, "%20s=%d        %s=%d\n",
+                            pong_user_name, our_score,
+                            "opponent", their_score);
+                } else if (*byte == 1) {
+                    byte++;
+                    opponent_name = (unsigned char *) byte;
+
                 }
                 break;
             case EM_EVENT_FOCUS_IN:
