@@ -2,6 +2,7 @@
 #include <kernel.h>
 
 
+
 #define SCREEN_BASE_ADDR 0xb8000
 #define SCREEN_WIDTH     80
 #define SCREEN_HEIGHT    25
@@ -9,12 +10,40 @@
 
 WORD default_color = 0x0F;
 
+#if VGA_MODE_ENABLED
+
+#include <vga.h>
+#define BLANK_CHAR 219
+
+WORD SCREEN[80][25];
+
+void poke_screen(int x, int y, WORD ch) {
+    assert(x < 80 && y < 25);
+    // poke_w(SCREEN_BASE_ADDR + y * SCREEN_WIDTH * 2 + x * 2, ch);
+    SCREEN[x][y] = ch;
+    tos_graphics.write_char(BLANK_CHAR, x * 8, y * 8, BLACK);
+    tos_graphics.write_char((unsigned char) ch, x * 8, y * 8, INTENSE_WHITE);
+}
+
+WORD peek_screen(int x, int y) {
+    assert(x < 80 && y < 25);
+    // return peek_w(SCREEN_BASE_ADDR + y * SCREEN_WIDTH * 2 + x * 2);
+    return SCREEN[x][y];
+}
+
+#else
+
 void poke_screen(int x, int y, WORD ch) {
     poke_w(SCREEN_BASE_ADDR + y * SCREEN_WIDTH * 2 + x * 2, ch);
 }
 
 WORD peek_screen(int x, int y) {
     return peek_w(SCREEN_BASE_ADDR + y * SCREEN_WIDTH * 2 + x * 2);
+}
+#endif
+
+BOOL window_is_valid(WINDOW * wnd) {
+    return (BOOL) (wnd->x + wnd->width <= 80 && wnd->y + wnd->height <= 25);
 }
 
 void scroll_window(WINDOW* wnd) {
@@ -63,11 +92,12 @@ void remove_cursor(WINDOW* wnd) {
 }
 
 void show_cursor(WINDOW* wnd) {
-#if 1
+    if (wnd->x + wnd->cursor_x > 79) {
+        wnd->cursor_x = 0;
+    }
     poke_screen(wnd->x + wnd->cursor_x,
             wnd->y + wnd->cursor_y,
             wnd->cursor_char | (default_color << 8));
-#endif
 }
 
 void clear_window(WINDOW* wnd) {
@@ -139,7 +169,9 @@ void output_string(WINDOW* wnd, const char *str) {
         output_char(wnd, *str++);
 }
 
-
+void win_draw_pixel(WINDOW * wnd, unsigned int x, unsigned int y, tos_color color) {
+    draw_pixel(wnd->x + x, wnd->y + y, color);
+}
 
 /*
  * There is not need to make any changes to the code below,

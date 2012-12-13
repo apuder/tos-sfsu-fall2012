@@ -474,7 +474,7 @@ void set_text_mode() {
     cls();
 }
 
-void set_vga_mode() {
+void init_vga_mode() {
     set_mode(G640x480x16);
 }
 
@@ -630,7 +630,7 @@ void get_palvec(int start, int num, int *pal) {
 }
 
 void test_vga() {
-    set_vga_mode();
+    init_vga_mode();
     demo_graphics();
 }
 
