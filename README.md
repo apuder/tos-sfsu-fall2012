@@ -10,33 +10,33 @@ problems the best place to troubleshoot is at the [TOS website](ttp://pear.sfsu.
 
 =-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
 
-1. Downloading TOS
+##Downloading TOS
 git clone git://github.com/apuder/tos-sfsu-fall2012.git
 cd tos-sfsu-fall2012
 sh ./configure
 may need to install nasm and javac, g++, bochs-x, bochs-sdl
 
-2. Starting bochs
+##Starting bochs
 sudo bochs
 enter in user password
 
 =-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
 
-3. Bochs command line
+##Bochs command line
 Tab to change from different windows
 Running Chat from shell: > chat
 Running Pong from shell: > pong "username"
 	      		 > coin
 
-	A. Inside chat window:
-		i. To change name of user: > name "username"
-	B. Inside pong window:
-		i. "Q" to move paddle up
-		j. "A" to move paddle down 
+	###Inside chat window:
+		#### To change name of user: > name "username"
+	###Inside pong window:
+		#### "Q" to move paddle up
+		#### "A" to move paddle down 
 
 =-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
 
-4. Chat in terminal
+## Chat in terminal
 java -jar tools/UDPChat/chat.jar incomingPort outgoingPort IP
 recommended: 
 java -jar tools/UDPChat/chat.jar 10001 10002 192.168.1.2
@@ -44,7 +44,7 @@ java -jar tools/UDPChat/chat.jar 10001 10002 192.168.1.2
 To change the name of the user within chat window:
 name "username"
 
-5. Pong in terminal
+##Pong in terminal
 java -jar tools/pong/pong.jar Java incomingPort outgoingPort IP
 recommended:
 java -jar tools/pong/pong.jar Java 9876 9875 192.168.1.2
