@@ -21,7 +21,7 @@
 #define SANITY_SHORT (unsigned short) 0xDEAD
 #define SANITY_INT (unsigned int) 0xDEADBEEF
 
-#define VGA_MODE_ENABLED 1
+#define VGA_MODE_ENABLED 0
 
 typedef int BOOL;
 
