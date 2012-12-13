@@ -1,3 +1,6 @@
+TOS
+==============
+
 This is the README file for tos operating system created by SFSU 
 in the fall of 2012 for CSC720. This version of tos has two main functions.
 There is a chat window as well as a pong game. Each of these interact with
