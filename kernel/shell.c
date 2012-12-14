@@ -1,7 +1,7 @@
 #include <kernel.h>
 #include <keycodes.h>
 
-static WINDOW shell_wnd = {0, 21, 40, 4, 0, 0, CURSOR_ACTIVE};
+static WINDOW shell_wnd = {0, 40, 40, 20, 0, 0, CURSOR_ACTIVE, TRUE, "Shell"};
 static WINDOW train_wnd = {0, 0, 80, 8, 0, 0, CURSOR_EMPTY};
 static WINDOW pacman_wnd = {61, 8, 0, 0, 0, 0, CURSOR_EMPTY};
 static WINDOW divider_wnd = {0, 20, 80, 1, 0, 0, CURSOR_EMPTY};
@@ -171,6 +171,17 @@ void process_command(char* command) {
         clear_window(shell_wnd_ptr);
         return;
     }
+   if (is_command(command, "about")) {
+     //todo take details 
+       	wprintf(&shell_wnd, "Diego Dayan \n");
+        wprintf(&shell_wnd, "Tyler Chapman\n");
+	wprintf(&shell_wnd, "Meenal Honap\n");
+	wprintf(&shell_wnd, "Mehari Gebremedhin\n");
+	wprintf(&shell_wnd, "Sonal Dubey\n\n");   
+         return;
+    }
+
+ 
 
     if (is_command(command, "help")) {
         wprintf(&shell_wnd, "Commands:\n");
@@ -183,6 +194,7 @@ void process_command(char* command) {
         wprintf(&shell_wnd, "  - rev    reverse train direction\n");
         wprintf(&shell_wnd, "  - train  start train application\n");
         wprintf(&shell_wnd, "  - ne     NE2000 tools\n");
+        wprintf(&shell_wnd, "  - about  class fall 2012\n"); 
         wprintf(&shell_wnd, "  - send   sends test packet from NE2K\n\n");
         return;
     }
