@@ -7,7 +7,7 @@ public class SenderThread extends Thread {
 	public SenderThread(UDPComm objSender) {
 		super();
 		this.objSender = objSender;
-		System.out.println("created sender with the sender objecrt");
+//		System.out.println("created sender with the sender object");
 	}
 
 	public void run() {

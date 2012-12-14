@@ -1,11 +1,12 @@
 #include <kernel.h>
 #include <keycodes.h>
 
-static WINDOW shell_wnd = {0, 21, 40, 4, 0, 0, CURSOR_ACTIVE};
-WINDOW* shell_wnd_ptr = &shell_wnd;
+static WINDOW shell_wnd = {0, 21, 40, 39, 0, 0, CURSOR_ACTIVE, TRUE, "Shell"};
 static WINDOW train_wnd = {0, 0, 80, 8, 0, 0, CURSOR_EMPTY};
 static WINDOW pacman_wnd = {61, 8, 0, 0, 0, 0, CURSOR_EMPTY};
-static WINDOW divider_wnd = {0, 8, 80, 1, 0, 0, CURSOR_EMPTY};
+static WINDOW divider_wnd = {0, 20, 80, 1, 0, 0, CURSOR_EMPTY};
+
+WINDOW* shell_wnd_ptr = &shell_wnd;
 
 void run_train_app(WINDOW* wnd) {
     static int already_run = 0;
@@ -138,10 +139,19 @@ void process_command(char* command) {
         return;
     }
 
-    if (is_command(command, "pong")) {
-        init_pong(command + 5);
+    if (is_command(command, "fireworks")) {
+        start_win_fireworks();
         return;
     }
+
+    if (is_command(command, "pong ")) {
+        init_pong(command + 5);
+        return;
+    } else if (is_command(command, "pong")) {
+        wprintf(&shell_wnd, "You must also specify a name!\n");
+        return;
+    }
+
     if (is_command(command, "chat")) {
         init_chat(); //hello
         return;
@@ -157,17 +167,34 @@ void process_command(char* command) {
         return;
     }
 
+    if (is_command(command, "clear")) {
+        clear_window(shell_wnd_ptr);
+        return;
+    }
+
+    if (is_command(command, "about")) {
+        //todo take details 
+        wprintf(&shell_wnd, "Diego Dayan \n");
+        wprintf(&shell_wnd, "Tyler Chapman\n");
+        wprintf(&shell_wnd, "Meenal Honap\n");
+        wprintf(&shell_wnd, "Mehari Gebremedhin\n");
+        wprintf(&shell_wnd, "Sonal Dubey\n\n");
+        return;
+    }
+
+
+
     if (is_command(command, "help")) {
         wprintf(&shell_wnd, "Commands:\n");
         wprintf(&shell_wnd, "  - help   show this help\n");
         wprintf(&shell_wnd, "  - clear  clear window\n");
         wprintf(&shell_wnd, "  - ps     show all processes\n");
-        wprintf(&shell_wnd, "  - pacman start PacMan\n");
-        wprintf(&shell_wnd, "  - go     make the train go\n");
-        wprintf(&shell_wnd, "  - stop   make the train stop\n");
-        wprintf(&shell_wnd, "  - rev    reverse train direction\n");
-        wprintf(&shell_wnd, "  - train  start train application\n");
+        wprintf(&shell_wnd, "  - clear  clear the shell window\n");
+        wprintf(&shell_wnd, "  - tab    change window focus\n");
+        wprintf(&shell_wnd, "  - chat   enable the chat window\n");
+        wprintf(&shell_wnd, "  - pong 'name'  run pong with your name\n");
         wprintf(&shell_wnd, "  - ne     NE2000 tools\n");
+        wprintf(&shell_wnd, "  - about  class fall 2012\n");
         wprintf(&shell_wnd, "  - send   sends test packet from NE2K\n\n");
         return;
     }
@@ -192,8 +219,8 @@ void shell_process(PROCESS self, PARAM param) {
     for (i = 0; i < 5; i++)
         output_char(&shell_wnd, 14);
 
-    wprintf(&shell_wnd, "TOS Shell\n");
-    wprintf(&shell_wnd, "---------\n\n");
+    //    wprintf(&shell_wnd, "TOS Shell\n");
+    //    wprintf(&shell_wnd, "---------\n\n");
 
     Keyb_Message msg;
     EM_Message * em_msg;
@@ -243,7 +270,7 @@ void shell_process(PROCESS self, PARAM param) {
                             process_input = 0;
                             break;
                         default:
-                            if (i == 80)
+                            if (i == shell_wnd.width)
                                 break;
                             buffer[i++] = ch;
                             break;

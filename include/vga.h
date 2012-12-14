@@ -50,23 +50,41 @@
 #define G360x480x256 8
 #define G640x480x2   9
 
-#define BLACK			0x0
-#define BLUE			0x1
-#define GREEN			0x2
-#define CYAN			0x3
-#define RED				0x4
-#define VIOLET			0x5
-#define YELLOW			0x6
-#define WHITE			0x7
-#define GRAY			0x8
-#define INTENSE_BLUE	0x9
+#define BLACK		0x0
+#define BLUE		0x1
+#define GREEN		0x2
+#define CYAN		0x3
+#define RED		0x4
+#define VIOLET		0x5
+#define YELLOW		0x6
+#define WHITE		0x7
+#define GRAY		0x8
+#define INTENSE_BLUE    0x9
 #define INTENSE_GREEN	0xa
 #define INTENSE_CYAN	0xb
-#define INTENSE_RED		0xc
+#define INTENSE_RED	0xc
 #define INTENSE_VIOLET	0xd
 #define INTENSE_YELLOW	0xe
 #define INTENSE_WHITE	0xf
-#define NONE			0x10
+#define NONE		0x10
+
+#define COLOR_BLACK		0x00
+#define COLOR_BLUE		0x01
+#define COLOR_GREEN		0x02
+#define COLOR_CYAN		0x03
+#define COLOR_RED		0x04
+#define COLOR_VIOLET		0x05
+#define COLOR_YELLOW		0x06
+#define COLOR_WHITE		0x07
+#define COLOR_GRAY		0x08
+#define COLOR_INTENSE_BLUE      0x09
+#define COLOR_INTENSE_GREEN	0x0A
+#define COLOR_INTENSE_CYAN	0x0B
+#define COLOR_INTENSE_RED	0x0C
+#define COLOR_INTENSE_VIOLET	0x0D
+#define COLOR_INTENSE_YELLOW	0x0E
+#define COLOR_INTENSE_WHITE     0x0F
+#define COLOR_NONE              0x10
 
 extern unsigned char* VGA_BASE;
 

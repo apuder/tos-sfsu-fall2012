@@ -21,6 +21,16 @@
 #define SANITY_SHORT (unsigned short) 0xDEAD
 #define SANITY_INT (unsigned int) 0xDEADBEEF
 
+#define VGA_MODE_ENABLED 1
+
+#if VGA_MODE_ENABLED
+#define CONSOLE_LINES 60
+#define CONSOLE_CHARS 80
+#else
+#define CONSOLE_LINES 25
+#define CONSOLE_CHARS 80
+#endif
+
 typedef int BOOL;
 
 /*=====>>> stdlib.c <<<=====================================================*/
@@ -51,6 +61,7 @@ typedef struct {
     int width, height;
     int cursor_x, cursor_y;
     char cursor_char, show_cursor;
+    char * title;
 } WINDOW;
 
 extern WINDOW* kernel_window;
@@ -68,6 +79,7 @@ void kprintf(const char* fmt, ...);
 void poke_screen(int x, int y, WORD ch);
 void cursor_active(WINDOW* wnd);
 void cursor_inactive(WINDOW* wnd);
+BOOL window_is_valid(WINDOW* wnd);
 
 /*=====>>> basicio.c <<<=====================================================*/
 
@@ -386,6 +398,11 @@ void init_pacman(WINDOW* wnd, int num_ghosts);
 
 /*=====>>> vga.c <<<==================================================*/
 
+void init_vga_mode();
 void test_vga();
+
+/*=====>>> fireworks.c <<<==================================================*/
+
+void start_win_fireworks();
 
 #endif
