@@ -37,7 +37,7 @@ recommended to use git. If there are any problems the best place to troubleshoot
 
 
 ###Chat in terminal
-		> java -jar chat.jar incomingPort outgoingPort IP
+	> java -jar chat.jar incomingPort outgoingPort IP
 #####recommended: 
  		> java -jar chat.jar 10001 10002 192.168.1.2
 
@@ -45,7 +45,7 @@ recommended to use git. If there are any problems the best place to troubleshoot
  		name "username"
 
 ###Pong in terminal
-		> java -jar pong.jar Java incomingPort outgoingPort IP
+	> java -jar pong.jar Java incomingPort outgoingPort IP
 #####recommended:
 		> java -jar pong.jar Java 9876 9875 192.168.1.2
 	Once inside the window use up and down arrows on the keyboard to control the paddle
