@@ -173,7 +173,7 @@ void process_command(char* command) {
         wprintf(&shell_wnd, "Diego Dayan \n");
         wprintf(&shell_wnd, "Tyler Chapman\n");
         wprintf(&shell_wnd, "Meenal Honap\n");
-        wprintf(&shell_wnd, "Mehari Gebremedhin\n");
+        wprintf(&shell_wnd, "Mehari Weldetsion \n");
         wprintf(&shell_wnd, "Sonal Dubey\n\n");
         return;
     }
