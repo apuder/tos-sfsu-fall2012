@@ -8,13 +8,13 @@ int next_color = 0;
 #define SPARK_COUNT       16
 #define BOMB_COUNT        8
 #define WINDOW_WIDTH      (8 * 32)
-#define WINDOW_HEIGHT     (8 * 10)
+#define WINDOW_HEIGHT     180 // (8 * 12)
 
 #define G 9.81f
 #define T 0.1f
 #define dV (T * G)
 
-WINDOW fireworks_win = {0, 0, WINDOW_WIDTH, WINDOW_HEIGHT, 0, 0, ' '};
+WINDOW fireworks_win = {41, 21, WINDOW_WIDTH, WINDOW_HEIGHT, 0, 0, ' '};
 
 typedef struct {
     float x;

@@ -147,13 +147,15 @@ if (c != '\0' && (!is_ascii(c) || !is_space(c)))
 int create_ip_hr(u_char_t *src_ip,u_char_t *dst_ip,u_int_t payload_len,IP *packet)
 {
 	unsigned short packet_len = (sizeof(IP) + payload_len);
+	unsigned short id = (unsigned short)fw_random();
 
 	packet->version = IP_V4;
 	packet->hdr_len = sizeof(IP) / sizeof(int);
 	packet->tos = IP_TOS_MIN_DELAY;            /* minimum service delay */
 	packet->len = htons_tos(packet_len);
-	packet->id =  htons_tos(0xFEED);         /* dummy packet id */
-	packet->offset = htons_tos(IP_FLAG_DF); /* don't defragment flag */
+	//packet->id =  htons_tos(0xFEED);
+	packet->id = htons_tos(id);
+	packet->offset = htons_tos(IP_FLAG_DF);
 	packet->ttl = IP_DEFAULT_TTL;
 	packet->protocol = IP_PROTO_UDP;
 	packet->checksum = 0;

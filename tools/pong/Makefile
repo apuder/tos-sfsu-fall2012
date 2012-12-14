@@ -8,7 +8,7 @@ SRC = \
 all: pong.jar
 
 pong.jar: $(SRC)
-	javac -source 1.6 -d . -sourcepath ./src src/com/sfsu/Main.java
+	javac -source 1.7 -d . -sourcepath ./src src/com/sfsu/Main.java
 	jar cfm pong.jar MANIFEST.MF com/sfsu/*.class 
 	rm -rf com
 	cp pong.jar ../..

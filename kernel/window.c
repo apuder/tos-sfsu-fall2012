@@ -170,7 +170,7 @@ void output_string(WINDOW* wnd, const char *str) {
 }
 
 void win_draw_pixel(WINDOW * wnd, unsigned int x, unsigned int y, tos_color color) {
-    draw_pixel(wnd->x + x, wnd->y + y, color);
+    draw_pixel((wnd->x << 3) + x, (wnd->y << 3) + y, color);
 }
 
 /*

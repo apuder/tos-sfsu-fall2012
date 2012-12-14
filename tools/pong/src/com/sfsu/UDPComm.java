@@ -9,102 +9,104 @@ import java.net.UnknownHostException;
 
 public class UDPComm {
 
-	// Member variables of the class
-	private int SenderPort;
-	private int ReceiverPort;
-	private String host;
-	private byte[] data;
+    // Member variables of the class
+    private int SenderPort;
+    private int ReceiverPort;
+    private String host;
+    private byte[] data;
 
-	public int getSenderPort() {
-		return SenderPort;
-	}
+    public int getSenderPort() {
+        return SenderPort;
+    }
 
-	public void setSenderPort(int senderPort) {
-		SenderPort = senderPort;
-	}
+    public void setSenderPort(int senderPort) {
+        SenderPort = senderPort;
+    }
 
-	public int getReceiverPort() {
-		return ReceiverPort;
-	}
+    public int getReceiverPort() {
+        return ReceiverPort;
+    }
 
-	public void setReceiverPort(int receiverPort) {
-		ReceiverPort = receiverPort;
-	}
+    public void setReceiverPort(int receiverPort) {
+        ReceiverPort = receiverPort;
+    }
 
-	public String getHost() {
-		return host;
-	}
+    public String getHost() {
+        return host;
+    }
 
-	public void setHost(String host) {
-		this.host = host;
-	}
+    public void setHost(String host) {
+        this.host = host;
+    }
 
-	public byte[] getData() {
-		return data;
-	}
+    public byte[] getData() {
+        return data;
+    }
 
-	public void setData(byte[] data) {
-		this.data = data;
-	}
+    public void setData(byte[] data) {
+        this.data = data;
+    }
+    // Declaring local variables
+    DatagramSocket SocketSender;
+    DatagramSocket SocketReceiver;
+    InetAddress IPAddress;
 
+    public void PrepareConnToSend() throws UnknownHostException,
+            SocketException {
 
+        IPAddress = InetAddress.getByName(host);
+        SocketSender = new DatagramSocket();
 
-	// Declaring local variables
-	DatagramSocket SocketSender;
-	DatagramSocket SocketReceiver;
-	InetAddress IPAddress;
+    }
 
-	public void PrepareConnToSend() throws UnknownHostException,
-			SocketException {
+    public void PrepareConnToReceive() throws UnknownHostException,
+            SocketException {
 
-		IPAddress = InetAddress.getByName(host);
-		SocketSender = new DatagramSocket();
+        SocketReceiver = new DatagramSocket(this.ReceiverPort);
 
-	}
+    }
 
-	public void PrepareConnToReceive() throws UnknownHostException,
-			SocketException {
+    public void send(byte[] arr) {
+        String data = new String(arr).trim();
 
-		SocketReceiver = new DatagramSocket(this.ReceiverPort);
+        DatagramPacket sendPacket = new DatagramPacket(arr, arr.length,
+                IPAddress, SenderPort);
+        try {
 
-	}
+            if (data.length() != 0) {
+                System.out.println("*");
+                SocketSender.send(sendPacket);
+            }
 
-	public void send(byte[] arr) {
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
 
-		DatagramPacket sendPacket = new DatagramPacket(arr, arr.length,
-				IPAddress, SenderPort);
-		try {
+    }
 
-			SocketSender.send(sendPacket);
+    public byte[] receive() {
 
-		} catch (IOException e) {
-			e.printStackTrace();
-		}
+        byte[] receiveData = new byte[1024];
+        try {
 
-	}
+            DatagramPacket receivePacket = new DatagramPacket(receiveData,
+                    receiveData.length);
+            SocketReceiver.receive(receivePacket);
+            receiveData = receivePacket.getData();
 
-	public byte[] receive() {
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+        return receiveData;
 
-		byte[] receiveData = new byte[1024];
-		try {
+    }
 
-			DatagramPacket receivePacket = new DatagramPacket(receiveData,
-					receiveData.length);
-			SocketReceiver.receive(receivePacket);
-			receiveData = receivePacket.getData();
-
-		} catch (Exception e) {
-			e.printStackTrace();
-		}
-		return receiveData;
-
-	}
-
-	public void closeConnection() {
-		if (!SocketSender.isClosed())
-			SocketSender.close();
-		if (!SocketReceiver.isClosed())
-			SocketReceiver.close();
-	}
-
+    public void closeConnection() {
+        if (!SocketSender.isClosed()) {
+            SocketSender.close();
+        }
+        if (!SocketReceiver.isClosed()) {
+            SocketReceiver.close();
+        }
+    }
 }
