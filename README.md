@@ -37,7 +37,7 @@ recommended to use git. If there are any problems the best place to troubleshoot
 
 
 ###Chat in terminal
-	> java -jar tools/UDPChat/chat.jar incomingPort outgoingPort IP
+		> java -jar tools/UDPChat/chat.jar incomingPort outgoingPort IP
 #####recommended: 
  		> java -jar tools/UDPChat/chat.jar 10001 10002 192.168.1.2
 
