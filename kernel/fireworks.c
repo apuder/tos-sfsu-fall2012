@@ -14,7 +14,7 @@ int next_color = 0;
 #define T 0.1f
 #define dV (T * G)
 
-WINDOW fireworks_win = {21, 20, WINDOW_WIDTH, WINDOW_HEIGHT, 0, 0, ' '};
+WINDOW fireworks_win = {41, 21, WINDOW_WIDTH, WINDOW_HEIGHT, 0, 0, ' '};
 
 typedef struct {
     float x;
