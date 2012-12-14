@@ -153,14 +153,10 @@ void process_command(char* command) {
     }
 
     if (is_command(command, "chat")) {
-        init_chat(); //hello
+        init_chat(); 
         return;
     }
 
-    if (is_command(command, "coin")) {
-        pong_coin_inserted();
-        return;
-    }
 
     if (is_command(command, "vga")) {
         test_vga();
@@ -186,16 +182,17 @@ void process_command(char* command) {
 
     if (is_command(command, "help")) {
         wprintf(&shell_wnd, "Commands:\n");
-        wprintf(&shell_wnd, "  - help   show this help\n");
-        wprintf(&shell_wnd, "  - clear  clear window\n");
-        wprintf(&shell_wnd, "  - ps     show all processes\n");
-        wprintf(&shell_wnd, "  - clear  clear the shell window\n");
-        wprintf(&shell_wnd, "  - tab    change window focus\n");
-        wprintf(&shell_wnd, "  - chat   enable the chat window\n");
+        wprintf(&shell_wnd, "  - help      show this help\n");
+        wprintf(&shell_wnd, "  - clear     clear window\n");
+        wprintf(&shell_wnd, "  - ps        show all processes\n");
+        wprintf(&shell_wnd, "  - clear     clear the shell window\n");
+        wprintf(&shell_wnd, "  - tab       change window focus\n");
+        wprintf(&shell_wnd, "  - chat      enable the chat window\n");
         wprintf(&shell_wnd, "  - pong 'name'  run pong with your name\n");
-        wprintf(&shell_wnd, "  - ne     NE2000 tools\n");
-        wprintf(&shell_wnd, "  - about  class fall 2012\n");
-        wprintf(&shell_wnd, "  - send   sends test packet from NE2K\n\n");
+        wprintf(&shell_wnd, "  - fireworks starts the fireworks show \n");
+        wprintf(&shell_wnd, "  - ne        NE2000 tools\n");
+        wprintf(&shell_wnd, "  - about     authors of this great program\n");
+        wprintf(&shell_wnd, "  - send      sends test packet from NE2K\n\n");
         return;
     }
 
