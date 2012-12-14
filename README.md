@@ -37,15 +37,15 @@ recommended to use git. If there are any problems the best place to troubleshoot
 
 
 ###Chat in terminal
-	> java -jar tools/UDPChat/chat.jar incomingPort outgoingPort IP
+	> java -jar chat.jar incomingPort outgoingPort IP
 #####recommended: 
- 		> java -jar tools/UDPChat/chat.jar 10001 10002 192.168.1.2
+ 		> java -jar chat.jar 10001 10002 192.168.1.2
 
 #####To change the name of the user within chat window:
  		name "username"
 
 ###Pong in terminal
-	> java -jar tools/pong/pong.jar Java incomingPort outgoingPort IP
+	> java -jar pong.jar Java incomingPort outgoingPort IP
 #####recommended:
-		> java -jar tools/pong/pong.jar Java 9876 9875 192.168.1.2
+		> java -jar pong.jar Java 9876 9875 192.168.1.2
 	Once inside the window use up and down arrows on the keyboard to control the paddle

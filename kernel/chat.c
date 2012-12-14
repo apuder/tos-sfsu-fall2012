@@ -7,7 +7,8 @@
 
 BOOL chat_init = 0;
 PORT chat_port;
-WINDOW disp_chat_wnd = {41, 40, 39, 19, 0, 0, CURSOR_EMPTY};
+WINDOW divider_chat_wnd = {41, 44, 39, 1, 0, 0, CURSOR_EMPTY};
+WINDOW disp_chat_wnd = {41, 45, 39, 14, 0, 0, CURSOR_EMPTY};
 WINDOW in_mess_wnd = {41, CONSOLE_LINES - 2, 39, 1, 0, 0, CURSOR_INACTIVE};
 unsigned char user_name[10] = "User";
 unsigned char opp_name[10] = "Opponent";
@@ -24,7 +25,7 @@ void chat_process(PROCESS self, PARAM param) {
     clear_window(&disp_chat_wnd);
     em_register_kboard_listener();
     em_register_udp_listener(LISTEN_PORT);
-    
+
     unsigned char mess_buffer[100];
     unsigned char message[100];
     int i = 0;
@@ -32,6 +33,7 @@ void chat_process(PROCESS self, PARAM param) {
     UDP * packet;
     u_char_t dip[4] = {192, 168, 1, 1};
 
+    wprintf(&divider_chat_wnd, "_______________________________________");
 
     while (1) {
         msg = (EM_Message*) receive(&sender_proc);
@@ -61,10 +63,10 @@ void chat_process(PROCESS self, PARAM param) {
             case EM_EVENT_UDP_PACKET_RECEIVED:
                 packet = (UDP *) msg->data;
                 int length = (int *) packet->len;
-                for(j=0; j<length; j++){
+                for (j = 0; j < length; j++) {
                     message[j] = packet->payload[j];
                 }
-                
+
                 char name[5] = {message[0], message[1], message[2], message[3], message[4]};
                 if (is_command(name, "name ")) {
                     for (j = 0; j < 10; j++) {
