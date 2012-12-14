@@ -108,15 +108,8 @@ void pong_process(PROCESS self, PARAM param) {
     wprintf(&pong_wnd, " '----------------' '----------------' '----------------' '----------------' \n");
     wprintf(&pong_wnd, "\n");
 
-    unsigned char times = 10;
-    while (!coin_inserted) {
-        times % 2 == 0
-                ? wprintf(&pong_wnd, "********************************* INSERT COIN *********************************\n")
-                : wprintf(&pong_wnd, "                                                                               \n");
-        pong_wnd.cursor_y -= 1;
-        times++;
-        sleep(10);
-    }
+    wprintf(&pong_wnd, "Pong is starting...");
+    sleep(50);
 
     clear_window(&pong_wnd);
 

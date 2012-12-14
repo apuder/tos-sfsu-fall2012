@@ -7,8 +7,8 @@
 
 BOOL chat_init = 0;
 PORT chat_port;
-WINDOW disp_chat_wnd = {41, 21, 39, 4, 0, 0, CURSOR_EMPTY};
-WINDOW in_mess_wnd = {41, 24, 39, 1, 0, 0, CURSOR_INACTIVE};
+WINDOW disp_chat_wnd = {41, 40, 39, 19, 0, 0, CURSOR_EMPTY};
+WINDOW in_mess_wnd = {41, CONSOLE_LINES - 2, 39, 1, 0, 0, CURSOR_INACTIVE};
 unsigned char user_name[10] = "User";
 unsigned char opp_name[10] = "Opponent";
 
@@ -18,12 +18,12 @@ void chat_process(PROCESS self, PARAM param) {
 
     assert(window_is_valid(&disp_chat_wnd));
     assert(window_is_valid(&in_mess_wnd));
+    show_cursor(&in_mess_wnd);
 
     clear_window(&in_mess_wnd);
     clear_window(&disp_chat_wnd);
     em_register_kboard_listener();
     em_register_udp_listener(LISTEN_PORT);
-
     
     unsigned char mess_buffer[100];
     unsigned char message[100];
