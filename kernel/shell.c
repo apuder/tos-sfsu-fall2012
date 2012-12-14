@@ -171,6 +171,7 @@ void process_command(char* command) {
         clear_window(shell_wnd_ptr);
         return;
     }
+
     if (is_command(command, "about")) {
         //todo take details 
         wprintf(&shell_wnd, "Diego Dayan \n");
@@ -188,11 +189,10 @@ void process_command(char* command) {
         wprintf(&shell_wnd, "  - help   show this help\n");
         wprintf(&shell_wnd, "  - clear  clear window\n");
         wprintf(&shell_wnd, "  - ps     show all processes\n");
-        wprintf(&shell_wnd, "  - pacman start PacMan\n");
-        wprintf(&shell_wnd, "  - go     make the train go\n");
-        wprintf(&shell_wnd, "  - stop   make the train stop\n");
-        wprintf(&shell_wnd, "  - rev    reverse train direction\n");
-        wprintf(&shell_wnd, "  - train  start train application\n");
+        wprintf(&shell_wnd, "  - clear  clear the shell window\n");
+        wprintf(&shell_wnd, "  - tab    change window focus\n");
+        wprintf(&shell_wnd, "  - chat   enable the chat window\n");
+        wprintf(&shell_wnd, "  - pong 'name'  run pong with your name\n");
         wprintf(&shell_wnd, "  - ne     NE2000 tools\n");
         wprintf(&shell_wnd, "  - about  class fall 2012\n");
         wprintf(&shell_wnd, "  - send   sends test packet from NE2K\n\n");
