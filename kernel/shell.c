@@ -216,11 +216,11 @@ void shell_process(PROCESS self, PARAM param) {
     clear_window(&divider_wnd);
     for (i = 0; i < 80; i++)
         output_char(&divider_wnd, 196);
-    for (i = 0; i < 5; i++)
+    for (i = 0; i < 40; i++)
         output_char(&shell_wnd, 14);
 
-    //    wprintf(&shell_wnd, "TOS Shell\n");
-    //    wprintf(&shell_wnd, "---------\n\n");
+    wprintf(&shell_wnd, "TOS Shell\n");
+    wprintf(&shell_wnd, "---------\n\n");
 
     Keyb_Message msg;
     EM_Message * em_msg;
