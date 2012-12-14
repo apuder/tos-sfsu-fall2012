@@ -2,31 +2,36 @@
 #include <assert.h>
 #include <keycodes.h>
 
-#define DISP_PORT (u_int16_t) 9875
-#define LISTEN_PORT (u_int16_t) 9876
+#define DISP_PORT (u_int16_t) 10002
+#define LISTEN_PORT (u_int16_t) 10001
 
 BOOL chat_init = 0;
 PORT chat_port;
-WINDOW disp_chat_wnd = {41, 21, 40, 4, 0, 0, CURSOR_EMPTY};
-WINDOW in_mess_wnd = {41, 24, 40, 1, 0, 0, CURSOR_INACTIVE};
+WINDOW disp_chat_wnd = {41, 21, 39, 4, 0, 0, CURSOR_EMPTY};
+WINDOW in_mess_wnd = {41, 24, 39, 1, 0, 0, CURSOR_INACTIVE};
+unsigned char user_name[10] = "User";
+unsigned char opp_name[10] = "Opponent";
 
 void chat_process(PROCESS self, PARAM param) {
     PROCESS sender_proc;
     EM_Message * msg;
 
+    assert(window_is_valid(&disp_chat_wnd));
+    assert(window_is_valid(&in_mess_wnd));
+
     clear_window(&in_mess_wnd);
     clear_window(&disp_chat_wnd);
     em_register_kboard_listener();
-    em_register_udp_listener(DISP_PORT);
+    em_register_udp_listener(LISTEN_PORT);
 
-    unsigned char * message;
+    
     unsigned char mess_buffer[100];
+    unsigned char message[100];
     int i = 0;
     int j = 0;
     UDP * packet;
     u_char_t dip[4] = {192, 168, 1, 1};
-    unsigned char user_name[10] = "User";
-    unsigned char opp_name[10] = "Opponent";
+
 
     while (1) {
         msg = (EM_Message*) receive(&sender_proc);
@@ -38,9 +43,9 @@ void chat_process(PROCESS self, PARAM param) {
                     clear_window(&in_mess_wnd);
                     mess_buffer[i] = '\0';
                     char name[5] = {mess_buffer[0], mess_buffer[1], mess_buffer[2], mess_buffer[3], mess_buffer[4]};
-                    if (is_command(name, "name:")) {
+                    if (is_command(name, "name ")) {
                         for (j = 0; j < 10; j++) {
-                            user_name[j] = mess_buffer[j + 6];
+                            user_name[j] = mess_buffer[j + 5];
                         }
                     }
                     wprintf(&disp_chat_wnd, "%s: %s\n", user_name, mess_buffer);
@@ -55,11 +60,15 @@ void chat_process(PROCESS self, PARAM param) {
                 break;
             case EM_EVENT_UDP_PACKET_RECEIVED:
                 packet = (UDP *) msg->data;
-                message = (unsigned char *) packet->payload;
+                int length = (int *) packet->len;
+                for(j=0; j<length; j++){
+                    message[j] = packet->payload[j];
+                }
+                
                 char name[5] = {message[0], message[1], message[2], message[3], message[4]};
-                if (is_command(name, "name:")) {
+                if (is_command(name, "name ")) {
                     for (j = 0; j < 10; j++) {
-                        user_name[j] = mess_buffer[j + 6];
+                        opp_name[j] = message[j + 5];
                     }
                 }
                 wprintf(&disp_chat_wnd, "%s: %s\n", opp_name, message);

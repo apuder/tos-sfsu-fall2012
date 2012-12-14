@@ -7,6 +7,9 @@ void kernel_main() {
     init_interrupts();
     init_null_process();
     init_timer();
+#if VGA_MODE_ENABLED
+    init_vga_mode();
+#endif
     init_com();
     init_keyb();
     clear_kernel_window();
