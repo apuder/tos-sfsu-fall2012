@@ -109,7 +109,7 @@ void pong_process(PROCESS self, PARAM param) {
     wprintf(&pong_wnd, "\n");
 
     wprintf(&pong_wnd, "Pong is starting...");
-    sleep(50);
+    sleep(100);
 
     clear_window(&pong_wnd);
 

@@ -1,0 +1,7 @@
+Manifest-Version: 1.0
+Ant-Version: Apache Ant 1.8.3
+Created-By: 1.7.0_09-b30 (Oracle Corporation)
+Class-Path: 
+X-COMMENT: Main-Class will be added automatically by build
+Main-Class: sfsu.edu.os.ChatWindow
+
