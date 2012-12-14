@@ -1,5 +1,5 @@
 
-DIRS = fat boot ttc pong
+DIRS = fat boot ttc pong UDPChat
 
 
 all:

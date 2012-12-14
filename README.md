@@ -28,7 +28,6 @@ recommended to use git. If there are any problems the best place to troubleshoot
 		> chat
 #####Running Pong from shell
 		> pong "username"
-		> coin
 
 #####Inside chat window
 		To change name of user: > name "username"
