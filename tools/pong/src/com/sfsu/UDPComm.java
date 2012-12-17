@@ -74,7 +74,6 @@ public class UDPComm {
         try {
 
             if (data.length() != 0) {
-                System.out.println("*");
                 SocketSender.send(sendPacket);
             }
 
